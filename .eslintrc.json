@@ -1,0 +1,29 @@
+{
+    "env": {
+        "commonjs": true,
+        "es6": true,
+        "node": true
+    },
+    "plugins": [
+        "security",
+        "standard",
+        "prettier"
+    ],
+    "extends" : [
+        "eslint:recommended",
+        "plugin:node/recommended",
+        "standard",
+        "prettier",
+        "prettier-standard",
+        "plugin:security/recommended"
+    ],
+    "globals": {
+        "Atomics": "readonly",
+        "SharedArrayBuffer": "readonly"
+    },
+    "parserOptions": {
+        "ecmaVersion": 2020
+    },
+    "rules": {
+    }
+}

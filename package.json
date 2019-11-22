@@ -3,7 +3,9 @@
   "version": "1.0.0",
   "description": "microservices chatbot",
   "main": "eevee.js",
-  "dependencies": {},
+  "dependencies": {
+    "ee-log": "^3.0.9"
+  },
   "devDependencies": {
     "eslint": "^6.6.0",
     "eslint-config-prettier": "^6.7.0",

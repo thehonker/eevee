@@ -1,10 +1,12 @@
 'use strict';
-
 // Usage: ./eevee.js [start, stop, restart, get, set, status, console, dump]
 
-console.log('running with command line options: ' + process.argv);
-console.log('primary command: ' + process.argv[2]);
-console.log('args: ' + process.argv.slice(3));
+// TODO: implement logging more better - I really like how ee-log formats output but we need more functionality
+// TODO: const consoleLogLevel = 'trace';
+
+const log = require('ee-log');
+
+log.highlight('Running with command line options:', process.argv);
 
 // All the "<thing> the bot, duh" comments were suggested by tabnine so i'm keeping them.
 switch (process.argv[2]) {
@@ -74,12 +76,12 @@ switch (process.argv[2]) {
 
   // Nothing in argv[2]
   case undefined:
-    throw new Error('no command specified');
+    throw new Error('No command specified');
 
   // Something unexpected in argv[2]
   default:
-    throw new Error('invalid command specified');
+    throw new Error('Invalid command specified');
 }
 
 // What are you doing here?
-throw new Error("we shouldn't have reached this spot");
+throw new Error("We shouldn't have reached this spot");

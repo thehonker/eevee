@@ -4,7 +4,10 @@
   "description": "microservices chatbot",
   "main": "eevee.js",
   "dependencies": {
-    "ee-log": "^3.0.9"
+    "ee-log": "^3.0.9",
+    "hjson": "^3.2.1",
+    "ipc-network": "https://github.com/epers/ipc-network",
+    "pm2": "^4.2.1"
   },
   "devDependencies": {
     "eslint": "^6.6.0",

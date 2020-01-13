@@ -1,30 +1,61 @@
 'use strict';
-// Usage: ./eevee.js [start, stop, restart, config, status, console, dump]
+// Usage: ./eevee.js [init, start, stop, restart, config, status, console, dump]
 
 // TODO: implement logging more better - I really like how ee-log formats output but we need more functionality
 // TODO: const consoleLogLevel = 'trace';
-const log = require('ee-log');
+const fs = require('fs');
+const clog = require('ee-log');
+const pm2 = require('pm2');
+const hjson = require('hjson');
 
-// All the "<thing> the bot, duh" comments were suggested by tabnine so i'm keeping them.
 const userFunctions = {
+  init: function(args) {
+    clog.highlight('Init args:', args);
+
+    // Load startup config
+    const startupConfigString = fs.readFileSync('./etc/startup.hjson', 'utf8');
+    const startupConfig = hjson.rt.parse(startupConfigString);
+    clog.highlight('Startup config:', startupConfig);
+
+    // Ask pm2 to start them all up
+    pm2.connect(function(error) {
+      if (error) {
+        clog.error(error);
+        throw error;
+      }
+      pm2.start({
+        script: './modules/helloworld.js',
+        autorestart: false,
+      });
+      clog.highlight('pm2.list');
+      clog.highlight(pm2.list());
+    });
+    pm2.disconnect();
+  },
+
+  // eslint-disable-next-line no-unused-vars
+  shutdown: function(args) {
+    // Shutdown the bot
+  },
+
   // eslint-disable-next-line no-unused-vars
   start: function(args) {
-    log.highlight('Start command:', args);
-    // Start the bot, duh
-    // Make sure the bot isn't already running, validate any args, and fork off init.
+    clog.highlight('Start command:', args);
+    // Start a module
+    // Make sure the module isn't already running, validate any args.
   },
 
   // eslint-disable-next-line no-unused-vars
   stop: function(args) {
-    // Stop the bot, duh
-    // If the bot is running, try to stop it gracefully.
+    // Stop a module
+    // If the module is running, try to stop it gracefully.
     // If graceful stop fails, error out. If --force is passed, kill it with fire.
   },
 
   // eslint-disable-next-line no-unused-vars
   restart: function(args) {
-    // Restart the bot, duh
-    // If the bot is running, try to gracefully stop it and then start it back up with the same args init ran with before.
+    // Restart the module, duh
+    // If the module is running, try to gracefully stop it and then start it back up with the same args init ran with before.
     // If graceful stop fails, error out. If --force is passed, kill it with fire and start it back up.
   },
 
@@ -80,7 +111,7 @@ const userFunctions = {
   },
 };
 
-log.highlight('Running with command line options:', process.argv);
+clog.highlight('Running with command line options:', process.argv);
 
 if (process.argv[2] !== undefined) {
   if (typeof userFunctions[process.argv[2]] === 'function') {

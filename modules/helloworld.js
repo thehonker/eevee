@@ -1,10 +1,25 @@
 'use strict';
 
 const clog = require('ee-log');
-const _ipc = require('ipc-network');
+const nrp = require('node-redis-pubsub');
 
-const ipc = new _ipc.IpcNetwork('helloworld');
-ipc.startListening();
+const ipc = new nrp({
+  port: 6379,
+  scope: 'helloworld',
+});
 
-setTimeout(() => clog.highlight('Hello World'), 500);
-setTimeout(() => ipc.stopListening(), 1000);
+ipc.on('msg', (data) => {
+  clog.error('msg received:', data);
+  ipc.emit('reply', {
+    foo: 'bar',
+    baz: 'ddd',
+    a: 'b',
+    f: false,
+    nu: null,
+    twentyseven: 27,
+  });
+});
+
+ipc.on('error', (error) => {
+  clog.error('ERRORERRORERROR', error);
+});

@@ -18,7 +18,7 @@ const userFunctions = {
     clog.highlight('Startup config:', startupConfig);
 
     // Ask pm2 to start them all up
-    pm2.connect(function(error) {
+    pm2.connect((error) => {
       if (error) {
         clog.error(error);
         throw error;

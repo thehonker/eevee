@@ -3,7 +3,13 @@
   initModules : [
     'helloWorld',
   ],
+
   // Or we can load all modules
   // If true, overrides initModules
   initAllModules : false,
+
+  // Applies to init and the command interperter in general
+  // Can be overriden via cli
+  // die, yell, continue
+  errorAction: 'die',
 }

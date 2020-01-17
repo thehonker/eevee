@@ -5,6 +5,7 @@
     "eevee",
     "gitignore",
     "microservices",
+    "pubsub",
     "readonly"
   ],
   "cSpell.ignoreWords": [

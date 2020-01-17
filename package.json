@@ -6,7 +6,7 @@
   "dependencies": {
     "ee-log": "^3.0.9",
     "hjson": "^3.2.1",
-    "ipc-network": "https://github.com/epers/ipc-network",
+    "node-redis-pubsub": "^4.0.0",
     "pm2": "^4.2.1"
   },
   "devDependencies": {

@@ -23,3 +23,7 @@ ipc.on('msg', (data) => {
 ipc.on('error', (error) => {
   clog.error('ERRORERRORERROR', error);
 });
+
+process.on('SIGINT', () => {
+
+});

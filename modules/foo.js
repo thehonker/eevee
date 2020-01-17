@@ -8,22 +8,16 @@ const ipc = new nrp({
   scope: 'helloworld',
 });
 
-ipc.on(
-  'reply',
-  (data) => {
-    clog.error('reply received:', data);
-  },
-  () => {
-    clog.highlight('helloworld.js connected to redis');
-  },
-);
+ipc.on('reply', (data) => {
+  clog.error('reply received:', data);
+});
 
 ipc.on('error', (error) => {
   clog.error('ERRORERRORERROR', error);
 });
 
 setTimeout(() => {
-  return ipc.emit('msg', {
+  ipc.emit('msg', {
     hello: 'world',
     foo: 'bar',
     baz: 'ddd',

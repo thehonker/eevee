@@ -4,13 +4,10 @@
     "chatbot",
     "eevee",
     "gitignore",
+    "hjson",
     "microservices",
     "pubsub",
-    "readonly"
-  ],
-  "cSpell.ignoreWords": [
-    "ceph",
-    "parens",
+    "readonly",
     "systemctl"
-  ]
+  ],
 }

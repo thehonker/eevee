@@ -31,20 +31,18 @@ const userFunctions = {
 
     // Load startup config
     const startupConfig = hjson.rt.parse(fs.readFileSync('./etc/startup.hjson', 'utf8'));
-    log.debug(startupConfig);
-
     // Ask pm2 to start them all up
-    startupConfig.initModules.forEach((ident) => {
-      pm2.connect((err) => {
-        if (err) {
-          log.error(err);
-          throw err;
-        }
+    pm2.connect((err) => {
+      if (err) {
+        console.log(err);
+        throw err;
+      }
+      startupConfig.initModules.forEach((ident) => {
         pm2.start(`./modules/${ident}.js`, (err, apps) => {
-          log.debug('started module:' + ident);
-          log.debug(apps);
+          console.log('started module:' + ident);
+          console.log(apps);
           pm2.disconnect();
-          err ? log.error(err) : null;
+          err ? console.log(err) : null;
         });
       });
     });

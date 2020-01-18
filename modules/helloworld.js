@@ -28,3 +28,5 @@ process.on('SIGINT', () => {
   ipc.quit();
   process.exitCode = 0;
 });
+
+process.send('ready');

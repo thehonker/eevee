@@ -34,3 +34,5 @@ process.on('SIGINT', () => {
   clearInterval(sendInterval);
   process.exitCode = 0;
 });
+
+process.send('ready');

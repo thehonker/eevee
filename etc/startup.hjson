@@ -1,7 +1,7 @@
 {
   // List of modules to load at startup
   initModules : [
-    'helloWorld',
+    'helloworld',
     'foo',
   ],
 

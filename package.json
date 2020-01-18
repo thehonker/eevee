@@ -21,6 +21,9 @@
   "scripts": {
     "test": "node_modules/.bin/eslint --ignore-path .gitignore ."
   },
+  "bin": {
+    "eevee": "./eevee.js"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/epers/eevee.git"

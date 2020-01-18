@@ -30,7 +30,6 @@ const sendInterval = setInterval(() => {
 }, 2000);
 
 process.on('SIGINT', () => {
-  ipc.removeAllListeners();
   ipc.quit();
   clearInterval(sendInterval);
   process.exitCode = 0;

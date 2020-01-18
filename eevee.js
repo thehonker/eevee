@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 'use strict';
 // Usage: ./eevee.js [init, start, stop, restart, config, status, console, dump]
 
@@ -28,23 +30,24 @@ const userFunctions = {
     log.debug('Init args:', args);
 
     // Load startup config
-    const startupConfigString = fs.readFileSync('./etc/startup.hjson', 'utf8');
-    const startupConfig = hjson.rt.parse(startupConfigString);
-    log.debug('Startup config:', startupConfig);
+    const startupConfig = hjson.rt.parse(fs.readFileSync('./etc/startup.hjson', 'utf8'));
+    log.debug(startupConfig);
 
     // Ask pm2 to start them all up
-    pm2.connect((error) => {
-      if (error) {
-        log.error(error);
-        throw error;
-      } else {
-        startupConfig.initModules.forEach((ident) => {
-          pm2.start(`./modules/${ident}`);
+    startupConfig.initModules.forEach((ident) => {
+      pm2.connect((err) => {
+        if (err) {
+          log.error(err);
+          throw err;
+        }
+        pm2.start(`./modules/${ident}.js`, (err, apps) => {
+          log.debug('started module:' + ident);
+          log.debug(apps);
+          pm2.disconnect();
+          err ? log.error(err) : null;
         });
-      }
+      });
     });
-    pm2.disconnect();
-    return 0;
   },
 
   // eslint-disable-next-line no-unused-vars
@@ -115,9 +118,10 @@ const userFunctions = {
           log.error(error);
           throw error;
         }
-        pm2.list();
+        log.info(pm2.list());
+        pm2.disconnect();
+        return 0;
       });
-      pm2.disconnect();
     }
   },
 

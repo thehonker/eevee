@@ -14,8 +14,7 @@ message = {
   },
   raw: {}, // Raw event as delivered by the connector library
 }
-ipc.emit('router.incoming', message);
-
+ipc.emit('router:incoming', message);
 ```
 
 ### Message from the router/parser/filter to the module
@@ -25,17 +24,16 @@ message = {
   args: ['foo', 'bar', 'baz'],
   text: ['~echo', 'foo', 'bar', 'baz'],
   from: {
-    module:     'irc.wetfish',  // Our module ident
-    platform:   'irc',          // Matrix, Discord, etc. Allows modules to apply platform-specific goodies
-    server:     'irc.wetfish',  // Server ident as defined in config - doesn't necessarily match module ident
-    channel:    '#botspam',     // # for channels, @ for pm's
-    nick:       'Weazzy',       // User's display name
-    ident:      'Weazzy@lu.dicro.us', // Full ident
+    module:     'irc.wetfish',
+    platform:   'irc',
+    server:     'irc.wetfish',
+    channel:    '#botspam',
+    nick:       'Weazzy',
+    ident:      'Weazzy@lu.dicro.us',
   },
   raw: {},
 }
-ipc.emit('command.echo', message);
-
+ipc.emit('echo:command', message);
 ```
 
 ### Message from 'echo' back to 'irc.wetfish'
@@ -52,5 +50,5 @@ message = {
     channel: '#botspam',
   },
 }
-ipc.emit('outgoing.irc.wetfish');
+ipc.emit('irc.wetfish:outgoing');
 ```

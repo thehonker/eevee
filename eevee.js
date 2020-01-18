@@ -37,13 +37,14 @@ const userFunctions = {
       if (error) {
         log.error(error);
         throw error;
+      } else {
+        startupConfig.initModules.forEach((ident) => {
+          pm2.start(`./modules/${ident}`);
+        });
       }
-      pm2.start({
-        script: './modules/helloworld.js',
-        autorestart: false,
-      });
     });
     pm2.disconnect();
+    return 0;
   },
 
   // eslint-disable-next-line no-unused-vars
@@ -109,6 +110,14 @@ const userFunctions = {
     } else {
       // If no module name was passed, gather up some useful stuff and print it to console.
       // Running modules, uptime, init args, etc.
+      pm2.connect((error) => {
+        if (error) {
+          log.error(error);
+          throw error;
+        }
+        pm2.list();
+      });
+      pm2.disconnect();
     }
   },
 
@@ -116,14 +125,6 @@ const userFunctions = {
   console: (args) => {
     // Console the bot, duh
     // Enter an interactive shell to control the bot.
-    pm2.connect((error) => {
-      if (error) {
-        log.error(error);
-        throw error;
-      }
-      pm2.list();
-    });
-    pm2.disconnect();
   },
 
   // eslint-disable-next-line no-unused-vars

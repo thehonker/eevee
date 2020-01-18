@@ -16,7 +16,7 @@ ipc.on('error', (error) => {
   clog.error('ERRORERRORERROR', error);
 });
 
-setTimeout(() => {
+const sendInterval = setInterval(() => {
   ipc.emit('msg', {
     hello: 'world',
     foo: 'bar',
@@ -32,5 +32,6 @@ setTimeout(() => {
 process.on('SIGINT', () => {
   ipc.removeAllListeners();
   ipc.quit();
+  clearInterval(sendInterval);
   process.exitCode = 0;
 });

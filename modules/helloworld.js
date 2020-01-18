@@ -25,5 +25,7 @@ ipc.on('error', (error) => {
 });
 
 process.on('SIGINT', () => {
-
+  ipc.removeAllListeners();
+  ipc.quit();
+  process.exitCode = 0;
 });

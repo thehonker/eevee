@@ -25,7 +25,9 @@
         "ecmaVersion": 2020
     },
     "rules": {
-        "capitalized-comments": ["error", "always"],
+        "capitalized-comments": ["error", "always", {
+            "ignorePattern": "prettier-ignore"
+        }],
         "arrow-parens": ["error", "always"],
         "prefer-arrow-callback": ["error"],
         "arrow-body-style": ["error", "always"]

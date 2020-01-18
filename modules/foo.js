@@ -9,7 +9,7 @@ const ipc = new nrp({
 });
 
 ipc.on('reply', (data) => {
-  clog.error('reply received:', data);
+  clog.debug('reply received:', data);
 });
 
 ipc.on('error', (error) => {
@@ -28,3 +28,9 @@ setTimeout(() => {
     twentyseven: 27,
   });
 }, 2000);
+
+process.on('SIGINT', () => {
+  ipc.removeAllListeners();
+  ipc.quit();
+  process.exitCode = 0;
+});

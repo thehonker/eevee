@@ -2,65 +2,79 @@
 // Usage: ./eevee.js [init, start, stop, restart, config, status, console, dump]
 
 // TODO: implement logging more better - I really like how ee-log formats output but we need more functionality
-// TODO: const consoleLogLevel = 'trace';
+
+const debug = true;
+
 const fs = require('fs');
-const clog = require('ee-log');
+const eelog = require('ee-log');
 const pm2 = require('pm2');
 const hjson = require('hjson');
 
+// We'll make this better in the future I guess
+// prettier-ignore
+const log = {
+  debug: (args) => { debug ? eelog.debug(args) : null; },
+  info: (args) => { debug ? eelog.highlight(args) : null; },
+  notice: (args) => { debug ? eelog.success(args) : null; },
+  warn: (args) => { debug ? eelog.warn(args) : null; },
+  error: (args) => { debug ? eelog.error(args) : null; },
+  crit: (args) => { debug ? eelog.error(args) : null; },
+  alert: (args) => { debug ? eelog.error(args) : null; },
+  emergency: (args) => { debug ? eelog.error(args) : null; },
+}
+
 const userFunctions = {
-  init: function(args) {
-    clog.highlight('Init args:', args);
+  init: (args) => {
+    log.debug('Init args:', args);
 
     // Load startup config
     const startupConfigString = fs.readFileSync('./etc/startup.hjson', 'utf8');
     const startupConfig = hjson.rt.parse(startupConfigString);
-    clog.highlight('Startup config:', startupConfig);
+    log.debug('Startup config:', startupConfig);
 
     // Ask pm2 to start them all up
     pm2.connect((error) => {
       if (error) {
-        clog.error(error);
+        log.error(error);
         throw error;
       }
       pm2.start({
         script: './modules/helloworld.js',
         autorestart: false,
       });
-      clog.highlight('pm2.list');
-      clog.highlight(pm2.list());
     });
     pm2.disconnect();
   },
 
   // eslint-disable-next-line no-unused-vars
-  shutdown: function(args) {
+  shutdown: (args) => {
     // Shutdown the bot
+    log.debug('Shutdown args:', args);
   },
 
   // eslint-disable-next-line no-unused-vars
-  start: function(args) {
-    clog.highlight('Start command:', args);
+  start: (args) => {
+    log.debug('Start command:', args);
     // Start a module
     // Make sure the module isn't already running, validate any args.
   },
 
   // eslint-disable-next-line no-unused-vars
-  stop: function(args) {
+  stop: (args) => {
     // Stop a module
     // If the module is running, try to stop it gracefully.
     // If graceful stop fails, error out. If --force is passed, kill it with fire.
   },
 
   // eslint-disable-next-line no-unused-vars
-  restart: function(args) {
+  restart: (args) => {
     // Restart the module, duh
     // If the module is running, try to gracefully stop it and then start it back up with the same args init ran with before.
     // If graceful stop fails, error out. If --force is passed, kill it with fire and start it back up.
   },
 
   // eslint-disable-next-line no-unused-vars
-  config: function(args) {
+  config: (args) => {
     // Configure the bot, duh
     switch (process.argv[3]) {
       case 'get':
@@ -84,7 +98,7 @@ const userFunctions = {
   },
 
   // eslint-disable-next-line no-unused-vars
-  status: function(args) {
+  status: (args) => {
     // Status the bot, duh
     // If --json is passed, give json output.
     // Did you give me a module name to report the status of?
@@ -99,19 +113,27 @@ const userFunctions = {
   },
 
   // eslint-disable-next-line no-unused-vars
-  console: function(args) {
+  console: (args) => {
     // Console the bot, duh
     // Enter an interactive shell to control the bot.
+    pm2.connect((error) => {
+      if (error) {
+        log.error(error);
+        throw error;
+      }
+      pm2.list();
+    });
+    pm2.disconnect();
   },
 
   // eslint-disable-next-line no-unused-vars
-  dump: function(args) {
+  dump: (args) => {
     // Dump the bot, duh
     // Ask all modules to dump their entire debug info to console.
   },
 };
 
-clog.highlight('Running with command line options:', process.argv);
+log.info('Running with command line options:', process.argv);
 
 if (process.argv[2] !== undefined) {
   if (typeof userFunctions[process.argv[2]] === 'function') {

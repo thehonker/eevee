@@ -26,23 +26,18 @@ const log = {
 }
 
 const userFunctions = {
+  // eslint-disable-next-line no-unused-vars
   init: (args) => {
-    log.debug('Init args:', args);
-
     // Load startup config
     const startupConfig = hjson.rt.parse(fs.readFileSync('./etc/startup.hjson', 'utf8'));
+
     // Ask pm2 to start them all up
     pm2.connect((err) => {
-      if (err) {
-        console.log(err);
-        throw err;
-      }
+      err ? log.error(err) : null;
       startupConfig.initModules.forEach((ident) => {
-        pm2.start(`./modules/${ident}.js`, (err, apps) => {
-          console.log('started module:' + ident);
-          console.log(apps);
+        pm2.start(`./modules/${ident}.js`, (err) => {
           pm2.disconnect();
-          err ? console.log(err) : null;
+          err ? log.error(err) : null;
         });
       });
     });
@@ -52,6 +47,21 @@ const userFunctions = {
   shutdown: (args) => {
     // Shutdown the bot
     log.debug('Shutdown args:', args);
+    pm2.connect((err) => {
+      err ? log.error(err) : null;
+      pm2.list((err, procList) => {
+        procList.forEach((proc) => {
+          pm2.delete(proc.name, (err) => {
+            pm2.disconnect();
+            err ? log.error(err) : null;
+          });
+        });
+        pm2.killDaemon((err) => {
+          pm2.disconnect();
+          err ? log.error(err) : null;
+        });
+      });
+    });
   },
 
   // eslint-disable-next-line no-unused-vars
@@ -111,13 +121,19 @@ const userFunctions = {
     } else {
       // If no module name was passed, gather up some useful stuff and print it to console.
       // Running modules, uptime, init args, etc.
+      var runningModules = [];
       pm2.connect((error) => {
         if (error) {
           log.error(error);
           throw error;
         }
-        log.info(pm2.list());
-        pm2.disconnect();
+        pm2.list((err, procList) => {
+          procList.forEach((proc) => {
+            runningModules.push(proc.name);
+          });
+          pm2.disconnect();
+          console.log('Running modules: ' + runningModules.join(', '));
+        });
         return 0;
       });
     }

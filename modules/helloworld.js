@@ -25,6 +25,7 @@ ipc.on('error', (error) => {
 });
 
 process.on('SIGINT', () => {
+  console.log('SIGINT received');
   ipc.quit();
   process.exitCode = 0;
 });

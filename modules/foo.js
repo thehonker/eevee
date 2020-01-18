@@ -30,6 +30,7 @@ const sendInterval = setInterval(() => {
 }, 2000);
 
 process.on('SIGINT', () => {
+  console.log('SIGINT received');
   ipc.quit();
   clearInterval(sendInterval);
   process.exitCode = 0;

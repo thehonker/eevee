@@ -8,13 +8,13 @@ const ipc = new nrp({
   scope: 'helloworld',
 });
 
-ipc.on('foo:a', (data) => {
-  clog.error('foo:a received:');
+ipc.on('baz:c', (data) => {
+  clog.error('baz:c received:');
 });
 
-ipc.on('foo:*', (data) => {
-  clog.info('foo:* received:');
-  ipc.emit('bar:b', {
+ipc.on('baz:*', (data) => {
+  clog.info('baz:* received:');
+  ipc.emit('bar:a', {
     foo: 'bar',
     baz: 'ddd',
     a: 'b',
@@ -29,7 +29,7 @@ ipc.on('error', (error) => {
 });
 
 const sendInterval = setInterval(() => {
-  ipc.emit('bar:x', {
+  ipc.emit('foo:z', {
     hello: 'world',
     foo: 'bar',
     baz: 'ddd',

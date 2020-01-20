@@ -1,9 +1,6 @@
 {
   // List of modules to load at startup
-  initModules : [
-    'helloworld',
-    'foo',
-  ],
+  initModules : ['foo'],
 
   // Or we can load all modules
   // If true, overrides initModules

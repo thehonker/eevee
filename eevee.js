@@ -1,16 +1,19 @@
 #!/usr/bin/env node
-
 'use strict';
-// Usage: ./eevee.js [init, start, stop, restart, config, status, console, dump]
 
-// TODO: implement logging more better - I really like how ee-log formats output but we need more functionality
-
-const debug = true;
+// Usage: eevee.js [init, start, stop, restart, config, status, console, dump]
 
 const fs = require('fs');
+const path = require('path');
 const eelog = require('ee-log');
 const pm2 = require('pm2');
 const hjson = require('hjson');
+const argv = require('yargs-parser')(process.argv.slice(2), {
+  boolean: ['debug'],
+});
+
+var debug = true; // Set to true to override cli option --debug, set to false to respect --debug option
+argv.debug ? (debug = true) : null;
 
 // We'll make this better in the future I guess
 // prettier-ignore
@@ -27,26 +30,27 @@ const log = {
 
 const userFunctions = {
   // eslint-disable-next-line no-unused-vars
-  init: (args) => {
-    // Load startup config
-    const startupConfig = hjson.rt.parse(fs.readFileSync('./etc/startup.hjson', 'utf8'));
-
-    // Ask pm2 to start them all up
+  init: (argv, startupConfig) => {
+    log.debug('init', argv);
+    // Ask pm2 to start all modules listed in 'initModules'
     pm2.connect((err) => {
-      err ? log.error(err) : null;
+      log.debug('pm2 connected');
+      err ? _throw(err) : null;
       startupConfig.initModules.forEach((ident) => {
-        pm2.start(`./modules/${ident}.js`, (err) => {
+        log.debug('attempting startup of', ident);
+        pm2.start(path.join(__dirname, `/modules/${ident}.js`), (err) => {
+          log.debug(ident, 'started');
           pm2.disconnect();
-          err ? log.error(err) : null;
+          err ? _throw(err) : null;
         });
       });
     });
   },
 
   // eslint-disable-next-line no-unused-vars
-  shutdown: (args) => {
+  shutdown: (argv, startupConfig) => {
     // Shutdown the bot
-    log.debug('Shutdown args:', args);
+    log.debug('Shutdown args:', argv);
     pm2.connect((err) => {
       err ? log.error(err) : null;
       pm2.list((err, procList) => {
@@ -65,30 +69,30 @@ const userFunctions = {
   },
 
   // eslint-disable-next-line no-unused-vars
-  start: (args) => {
-    log.debug('Start command:', args);
+  start: (argv, startupConfig) => {
+    log.debug('Start command:', argv);
     // Start a module
     // Make sure the module isn't already running, validate any args.
   },
 
   // eslint-disable-next-line no-unused-vars
-  stop: (args) => {
+  stop: (argv, startupConfig) => {
     // Stop a module
     // If the module is running, try to stop it gracefully.
     // If graceful stop fails, error out. If --force is passed, kill it with fire.
   },
 
   // eslint-disable-next-line no-unused-vars
-  restart: (args) => {
+  restart: (argv, startupConfig) => {
     // Restart the module, duh
     // If the module is running, try to gracefully stop it and then start it back up with the same args init ran with before.
     // If graceful stop fails, error out. If --force is passed, kill it with fire and start it back up.
   },
 
   // eslint-disable-next-line no-unused-vars
-  config: (args) => {
+  config: (argv, startupConfig) => {
     // Configure the bot, duh
-    switch (process.argv[3]) {
+    switch (argv._[1]) {
       case 'get':
         // Get the bot, duh
         // Get the value of a configuration entry from both startup and running config.
@@ -110,11 +114,11 @@ const userFunctions = {
   },
 
   // eslint-disable-next-line no-unused-vars
-  status: (args) => {
+  status: (argv, startupConfig) => {
     // Status the bot, duh
     // If --json is passed, give json output.
     // Did you give me a module name to report the status of?
-    if (args[3] !== undefined) {
+    if (argv[1] !== undefined) {
       // They gave us a module name.
       // If the module is running, ask it for a status report.
       // If not, print the last exit code, or something. Something like systemctl's output for a stopped service would be cool.
@@ -140,26 +144,44 @@ const userFunctions = {
   },
 
   // eslint-disable-next-line no-unused-vars
-  console: (args) => {
+  console: (argv, startupConfig) => {
     // Console the bot, duh
     // Enter an interactive shell to control the bot.
   },
 
   // eslint-disable-next-line no-unused-vars
-  dump: (args) => {
+  dump: (argv, startupConfig) => {
     // Dump the bot, duh
     // Ask all modules to dump their entire debug info to console.
   },
 };
 
-log.info('Running with command line options:', process.argv);
+debug ? log.info(argv) : null;
 
-if (process.argv[2] !== undefined) {
-  if (typeof userFunctions[process.argv[2]] === 'function') {
-    process.exitCode = userFunctions[process.argv[2]](process.argv.slice(3));
+if (argv._[0] !== undefined) {
+  if (typeof userFunctions[argv._[0]] === 'function') {
+    // eslint-disable-next-line security/detect-non-literal-fs-filename
+    fs.readFile(path.join(__dirname, '/etc/startup.hjson'), 'utf8', (err, data) => {
+      err ? _throw(err) : null;
+      // Load startup config
+      const startupConfig = hjson.rt.parse(data);
+      process.exitCode = userFunctions[argv._[0]](argv, startupConfig);
+    });
   } else {
     throw new Error('Invalid command');
   }
 } else {
-  throw new Error('No command given');
+  // Treat no command as 'status'
+  // eslint-disable-next-line security/detect-non-literal-fs-filename
+  fs.readFile(path.join(__dirname, '/etc/startup.hjson'), 'utf8', (err, data) => {
+    err ? _throw(err) : null;
+    // Load startup config
+    const startupConfig = hjson.rt.parse(data);
+    process.exitCode = userFunctions['status'](argv, startupConfig);
+  });
 }
+
+const _throw = (err) => {
+  log.error(err);
+  throw new Error(err);
+};

@@ -426,6 +426,11 @@ continuation-local-storage@^3.2.1:
     async-listener "^0.6.0"
     emitter-listener "^1.1.1"
 
+core-js@^3.0.1:
+  version "3.6.4"
+  resolved "https://registry.yarnpkg.com/core-js/-/core-js-3.6.4.tgz#440a83536b458114b9cb2ac1580ba377dc470647"
+  integrity sha512-4paDGScNgZP2IXXilaffL9X7968RuvwlkK3xWtZRVqgd8SYNiVKRJvkFd1aqqEuPfN7E68ZHEp9hDj6lHj4Hyw==
+
 core-util-is@~1.0.0:
   version "1.0.2"
   resolved "https://registry.yarnpkg.com/core-util-is/-/core-util-is-1.0.2.tgz#b5fd54220aa2bc5ab57aab7140c940754503c1a7"
@@ -781,6 +786,11 @@ eventemitter2@~0.4.14:
   resolved "https://registry.yarnpkg.com/eventemitter2/-/eventemitter2-0.4.14.tgz#8f61b75cde012b2e9eb284d4545583b5643b61ab"
   integrity sha1-j2G3XN4BKy6esoTUVFWDtWQ7Yas=
 
+eventemitter3@^2.0.2:
+  version "2.0.3"
+  resolved "https://registry.yarnpkg.com/eventemitter3/-/eventemitter3-2.0.3.tgz#b5e1079b59fb5e1ba2771c0a993be060a58c99ba"
+  integrity sha1-teEHm1n7XhuidxwKmTvgYKWMmbo=
+
 extend@~3.0.2:
   version "3.0.2"
   resolved "https://registry.yarnpkg.com/extend/-/extend-3.0.2.tgz#f8b1136b4071fbd8eb140aff858b1019ec2915fa"
@@ -814,6 +824,11 @@ fast-levenshtein@~2.0.6:
   version "2.0.6"
   resolved "https://registry.yarnpkg.com/fast-levenshtein/-/fast-levenshtein-2.0.6.tgz#3d8a5c66883a16a30ca8643e851f19baa7797917"
   integrity sha1-PYpcZog6FqMMqGQ+hR8Zuqd5eRc=
+
+fast-text-encoding@^1.0.0:
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/fast-text-encoding/-/fast-text-encoding-1.0.0.tgz#3e5ce8293409cfaa7177a71b9ca84e1b1e6f25ef"
+  integrity sha512-R9bHCvweUxxwkDwhjav5vxpFvdPGlVngtqmx4pIZfSUhM/Q4NiIUHB456BAf+Q1Nwu3HEZYONtu+Rya+af4jiQ==
 
 fclone@1.0.11, fclone@^1.0.11:
   version "1.0.11"
@@ -943,6 +958,11 @@ globals@^12.1.0:
   dependencies:
     type-fest "^0.8.1"
 
+grapheme-splitter@^1.0.4:
+  version "1.0.4"
+  resolved "https://registry.yarnpkg.com/grapheme-splitter/-/grapheme-splitter-1.0.4.tgz#9cf3a665c6247479896834af35cf1dbb4400767e"
+  integrity sha512-bzh50DW9kTPM00T8y4o8vQg89Di9oLJVLW/KaOGIXJWP/iqCN6WKYkbNOF04vFLJhwcpYUh9ydh/+5vpOqV4YQ==
+
 has-ansi@^2.0.0:
   version "2.0.0"
   resolved "https://registry.yarnpkg.com/has-ansi/-/has-ansi-2.0.0.tgz#34f5049ce1ecdf2b0649af3ef24e45ed35416d91"
@@ -1064,6 +1084,26 @@ ip@1.1.5, ip@^1.1.5:
   resolved "https://registry.yarnpkg.com/ip/-/ip-1.1.5.tgz#bdded70114290828c0a039e72ef25f5aaec4354a"
   integrity sha1-vd7XARQpCCjAoDnnLvJfWq7ENUo=
 
+ipaddr.js@0.1.3:
+  version "0.1.3"
+  resolved "https://registry.yarnpkg.com/ipaddr.js/-/ipaddr.js-0.1.3.tgz#27a9ca37f148d2102b0ef191ccbf2c51a8f025c6"
+  integrity sha1-J6nKN/FI0hArDvGRzL8sUajwJcY=
+
+irc-framework@^4.6.0:
+  version "4.6.0"
+  resolved "https://registry.yarnpkg.com/irc-framework/-/irc-framework-4.6.0.tgz#45846be58a3a97fc7b0610da380dfeed0fb99147"
+  integrity sha512-I/5QLe5BfK/4bgDRAaVec9l+8VYVEHOPYvjcNV5SshgCPssrFwjgCJ48oDYFf8J3HMAIbGTjqV+aOXCM/3r30A==
+  dependencies:
+    core-js "^3.0.1"
+    eventemitter3 "^2.0.2"
+    grapheme-splitter "^1.0.4"
+    iconv-lite "^0.4.24"
+    isomorphic-textencoder "^1.0.1"
+    lodash "^4.17.11"
+    middleware-handler "^0.2.0"
+    regenerator-runtime "^0.13.2"
+    socksjs "^0.5.0"
+
 is-binary-path@~2.1.0:
   version "2.1.0"
   resolved "https://registry.yarnpkg.com/is-binary-path/-/is-binary-path-2.1.0.tgz#ea1f7f3b80f064236e83470f86c09c254fb45b09"
@@ -1117,6 +1157,13 @@ isexe@^2.0.0:
   version "2.0.0"
   resolved "https://registry.yarnpkg.com/isexe/-/isexe-2.0.0.tgz#e8fbf374dc556ff8947a10dcb0572d633f2cfa10"
   integrity sha1-6PvzdNxVb/iUehDcsFctYz8s+hA=
+
+isomorphic-textencoder@^1.0.1:
+  version "1.0.1"
+  resolved "https://registry.yarnpkg.com/isomorphic-textencoder/-/isomorphic-textencoder-1.0.1.tgz#38dcd3b4416d29cd33e274f64b99ae567cd15e83"
+  integrity sha512-676hESgHullDdHDsj469hr+7t3i/neBKU9J7q1T4RHaWwLAsaQnywC0D1dIUId0YZ+JtVrShzuBk1soo0+GVcQ==
+  dependencies:
+    fast-text-encoding "^1.0.0"
 
 js-git@^0.7.8:
   version "0.7.8"
@@ -1189,7 +1236,7 @@ lodash@4.17.14:
   resolved "https://registry.yarnpkg.com/lodash/-/lodash-4.17.14.tgz#9ce487ae66c96254fe20b599f21b6816028078ba"
   integrity sha512-mmKYbW3GLuJeX+iGP+Y7Gp1AiGHGbXHCOh/jZmrawMmsE7MS4znI3RL2FsjbqOyMayHInjOeykW7PEajUk1/xw==
 
-lodash@^4.17.10, lodash@^4.17.14, lodash@^4.17.15:
+lodash@^4.17.10, lodash@^4.17.11, lodash@^4.17.14, lodash@^4.17.15:
   version "4.17.15"
   resolved "https://registry.yarnpkg.com/lodash/-/lodash-4.17.15.tgz#b447f6670a0455bbfeedd11392eff330ea097548"
   integrity sha512-8xOcRHvCjnocdS5cpwXQXVzmmh5e5+saE2QGoeQmbKmRS6J3VQppPOIt0MnmE+4xlZoumy0GPG0D0MVIQbNA1A==
@@ -1215,6 +1262,11 @@ lru-cache@^5.1.1:
   integrity sha512-KpNARQA3Iwv+jTA0utUVVbrh+Jlrr1Fv0e56GGzAFOXN7dk/FviaDW8LHmK52DlcH4WP2n6gI8vN1aesBFgo9w==
   dependencies:
     yallist "^3.0.2"
+
+middleware-handler@^0.2.0:
+  version "0.2.0"
+  resolved "https://registry.yarnpkg.com/middleware-handler/-/middleware-handler-0.2.0.tgz#bf02af7e6b577c0230609b2ae58df0e446f3fd02"
+  integrity sha1-vwKvfmtXfAIwYJsq5Y3w5Ebz/QI=
 
 mimic-fn@^2.1.0:
   version "2.1.0"
@@ -1620,6 +1672,11 @@ redis@^2.7.1:
     redis-commands "^1.2.0"
     redis-parser "^2.6.0"
 
+regenerator-runtime@^0.13.2:
+  version "0.13.3"
+  resolved "https://registry.yarnpkg.com/regenerator-runtime/-/regenerator-runtime-0.13.3.tgz#7cf6a77d8f5c6f60eb73c5fc1955b2ceb01e6bf5"
+  integrity sha512-naKIZz2GQ8JWh///G7L3X6LaQUAMp2lvb1rvwwsURe/VXwD6VMfr+/1NuNw3ag8v2kY1aQ/go5SNn79O9JU7yw==
+
 regexpp@^2.0.1:
   version "2.0.1"
   resolved "https://registry.yarnpkg.com/regexpp/-/regexpp-2.0.1.tgz#8d19d31cf632482b589049f8281f93dbcba4d07f"
@@ -1803,6 +1860,13 @@ socks@~2.3.2:
   dependencies:
     ip "1.1.5"
     smart-buffer "^4.1.0"
+
+socksjs@^0.5.0:
+  version "0.5.0"
+  resolved "https://registry.yarnpkg.com/socksjs/-/socksjs-0.5.0.tgz#77b005e32d1bfc96e560fedd5d7eedcf120f87e3"
+  integrity sha1-d7AF4y0b/JblYP7dXX7tzxIPh+M=
+  dependencies:
+    ipaddr.js "0.1.3"
 
 source-map-support@0.5.12:
   version "0.5.12"

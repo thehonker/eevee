@@ -28,6 +28,11 @@ const log = {
   emergency: (args) => { debug ? eelog.error(args) : null; },
 }
 
+const _throw = (err) => {
+  log.error(err);
+  throw new Error(err);
+};
+
 const userFunctions = {
   // eslint-disable-next-line no-unused-vars
   init: (argv, startupConfig) => {
@@ -52,17 +57,17 @@ const userFunctions = {
     // Shutdown the bot
     log.debug('Shutdown args:', argv);
     pm2.connect((err) => {
-      err ? log.error(err) : null;
+      err ? _throw(err) : null;
       pm2.list((err, procList) => {
         procList.forEach((proc) => {
           pm2.delete(proc.name, (err) => {
             pm2.disconnect();
-            err ? log.error(err) : null;
+            err ? _throw(err) : null;
           });
         });
         pm2.killDaemon((err) => {
           pm2.disconnect();
-          err ? log.error(err) : null;
+          err ? _throw(err) : null;
         });
       });
     });
@@ -70,9 +75,31 @@ const userFunctions = {
 
   // eslint-disable-next-line no-unused-vars
   start: (argv, startupConfig) => {
-    log.debug('Start command:', argv);
-    // Start a module
-    // Make sure the module isn't already running, validate any args.
+    log.debug('argv:', argv);
+    _throw(argv);
+    var runningModules = [];
+    const ident = argv._[1];
+    pm2.connect((err) => {
+      err ? _throw(err) : null;
+      pm2.list((err, procList) => {
+        procList.forEach((proc) => {
+          runningModules.push(proc.name);
+        });
+        if (!runningModules.includes(ident)) {
+          log.debug('attempting startup of', ident);
+          pm2.start(path.join(__dirname, `/modules/${ident}.js`), (err) => {
+            log.debug(ident, 'started');
+            pm2.disconnect();
+            err ? _throw(err) : null;
+          });
+        } else {
+          _throw('Module already running');
+        }
+        pm2.disconnect();
+        console.log('Running modules: ' + runningModules.join(', '));
+      });
+      return 0;
+    });
   },
 
   // eslint-disable-next-line no-unused-vars
@@ -126,11 +153,8 @@ const userFunctions = {
       // If no module name was passed, gather up some useful stuff and print it to console.
       // Running modules, uptime, init args, etc.
       var runningModules = [];
-      pm2.connect((error) => {
-        if (error) {
-          log.error(error);
-          throw error;
-        }
+      pm2.connect((err) => {
+        err ? _throw(err) : null;
         pm2.list((err, procList) => {
           procList.forEach((proc) => {
             runningModules.push(proc.name);
@@ -180,8 +204,3 @@ if (argv._[0] !== undefined) {
     process.exitCode = userFunctions['status'](argv, startupConfig);
   });
 }
-
-const _throw = (err) => {
-  log.error(err);
-  throw new Error(err);
-};

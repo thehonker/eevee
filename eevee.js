@@ -75,8 +75,7 @@ const userFunctions = {
 
   // eslint-disable-next-line no-unused-vars
   start: (argv, startupConfig) => {
-    log.debug('argv:', argv);
-    _throw(argv);
+    eelog.error(argv);
     var runningModules = [];
     const ident = argv._[1];
     pm2.connect((err) => {
@@ -85,18 +84,22 @@ const userFunctions = {
         procList.forEach((proc) => {
           runningModules.push(proc.name);
         });
-        if (!runningModules.includes(ident)) {
-          log.debug('attempting startup of', ident);
+        if (runningModules.includes(ident)) {
+          _throw('Module already running');
+        }
+        eelog.error(ident);
+        eelog.error('attempting startup of', ident);
+        eelog.error('at', path.join(__dirname, `/modules/${ident}.js`));
+        pm2.connect((err) => {
+          err ? _throw(err) : null;
           pm2.start(path.join(__dirname, `/modules/${ident}.js`), (err) => {
-            log.debug(ident, 'started');
+            eelog.error(ident, 'started');
             pm2.disconnect();
             err ? _throw(err) : null;
           });
-        } else {
-          _throw('Module already running');
-        }
-        pm2.disconnect();
+        });
         console.log('Running modules: ' + runningModules.join(', '));
+        pm2.disconnect();
       });
       return 0;
     });

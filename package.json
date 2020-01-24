@@ -9,6 +9,7 @@
     "irc-framework": "^4.6.0",
     "node-redis-pubsub": "^4.0.0",
     "pm2": "^4.2.1",
+    "pm2-promise": "^1.1.0",
     "yargs-parser": "^16.1.0"
   },
   "devDependencies": {

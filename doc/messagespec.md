@@ -1,6 +1,7 @@
-## IPC Message Format
+# IPC Message Format
 
-### Message from server connector to router/parser/filter
+## Message from server connector to router/parser/filter
+
 ```javascript
 message = {
   text: ['~echo', 'foo', 'bar', 'baz'],
@@ -17,7 +18,8 @@ message = {
 ipc.emit('router:incoming', message);
 ```
 
-### Message from the router/parser/filter to the module
+## Message from the router/parser/filter to the module
+
 ```javascript
 message = {
   command: 'echo',
@@ -36,7 +38,8 @@ message = {
 ipc.emit('echo:command', message);
 ```
 
-### Message from 'echo' back to 'irc.wetfish'
+## Message from 'echo' back to 'irc.wetfish'
+
 ```javascript
 message = {
   text: ['foo', 'bar', 'baz'],

@@ -1,6 +1,8 @@
 {
   "editor.tabSize": 2,
   "cSpell.words": [
+    "Weazzy",
+    "botspam",
     "chatbot",
     "eelog",
     "eevee",
@@ -9,6 +11,7 @@
     "microservices",
     "pubsub",
     "readonly",
-    "systemctl"
+    "systemctl",
+    "wetfish"
   ],
 }

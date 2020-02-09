@@ -3,31 +3,47 @@
 
 // Usage: eevee.js [init, start, stop, restart, config, status, console, dump]
 
+process.env.PM2_HOME = path.join(__dirname, '../.pm2');
+
 const fs = require('fs');
 const path = require('path');
-const log = require('ee-log');
+const clog = require('ee-log');
 const pm2 = require('pm2');
 const hjson = require('hjson');
 const argv = require('yargs-parser')(process.argv.slice(2), {
-  boolean: ['debug'],
+  boolean: ['debug', 'verbose'],
 });
 
 var debug = true; // Set to true to override cli option --debug, set to false to respect --debug option
 argv.debug ? (debug = true) : null;
 
+var verbose = true; // Set to true to override cli option --verbose, set to false to respect --verbose option
+argv.verbose ? (verbose = true) : null;
+debug ? (verbose = true) : null; // If debug is set to true then we'll turn on verbose as well
+
 const userFunctions = {
   // eslint-disable-next-line no-unused-vars
   init: (argv, startupConfig) => {
     // Ask pm2 to start all modules listed in 'initModules'
-    startupConfig.initModules.forEach((ident) => {
-      fs.access(path.join(__dirname, `/modules/${ident}.js`), (err) => {
-        if (err) throw new Error(err);
-        pm2.start(path.join(__dirname, `/modules/${ident}.js`), (err) => {
+    pm2.list((err, procList) => {
+      if (err) throw new Error(err);
+      const runningModules = [];
+      procList.forEach((proc) => {
+        runningModules.push(proc.name);
+      });
+      verbose ? console.log('Startup modules:' + runningModules) : null;
+      startupConfig.initModules.forEach((ident) => {
+        if (runningModules.includes(ident)) throw new Error('Module already running');
+        fs.access(path.join(__dirname, `/modules/${ident}.js`), (err) => {
           if (err) throw new Error(err);
-          log.debug(ident, 'started');
-          pm2.disconnect();
+          pm2.start(path.join(__dirname, `/modules/${ident}.js`), (err) => {
+            if (err) throw new Error(err);
+            verbose ? console.log(`Module ${ident} started`) : null;
+            pm2.disconnect();
+          });
         });
       });
+      pm2.disconnect();
     });
   },
 
@@ -35,12 +51,12 @@ const userFunctions = {
   shutdown: (argv, startupConfig) => {
     // Shutdown the bot
     pm2.list((err, procList) => {
-      log.debug(procList);
+      debug ? clog.debug(procList) : null;
       if (procList.length === 0) throw new Error('No processes running');
       procList.forEach((proc) => {
         pm2.delete(proc.name, (err) => {
           if (err) throw new Error(err);
-          log.debug(proc.name, 'stopped');
+          debug ? clog.debug(proc.name, 'stopped') : null;
           pm2.disconnect();
         });
       });
@@ -61,7 +77,7 @@ const userFunctions = {
         if (err) throw new Error(err);
         pm2.start(path.join(__dirname, `/modules/${ident}.js`), (err) => {
           if (err) throw new Error(err);
-          log.debug(ident, 'started');
+          debug ? clog.debug(ident, 'started') : null;
           pm2.disconnect();
         });
       });
@@ -80,7 +96,7 @@ const userFunctions = {
       if (!runningModules.includes(ident)) throw new Error('Module not running');
       pm2.delete(ident, (err) => {
         if (err) throw new Error(err);
-        log.debug(ident, 'stopped');
+        debug ? clog.debug(ident, 'stopped') : null;
         pm2.disconnect();
       });
     });
@@ -91,6 +107,8 @@ const userFunctions = {
     // Restart the module, duh
     // If the module is running, try to gracefully stop it and then start it back up with the same args init ran with before.
     // If graceful stop fails, error out. If --force is passed, kill it with fire and start it back up.
+    userFunctions.stop(argv, startupConfig);
+    userFunctions.start(argv, startupConfig);
   },
 
   // eslint-disable-next-line no-unused-vars
@@ -114,7 +132,7 @@ const userFunctions = {
 
       default:
         break;
-    } // Can you tell I work with ceph?
+    }
   },
 
   // eslint-disable-next-line no-unused-vars
@@ -122,10 +140,11 @@ const userFunctions = {
     // Status the bot, duh
     // If --json is passed, give json output.
     // Did you give me a module name to report the status of?
-    if (argv[1] !== undefined) {
+    if (argv._[1] !== undefined) {
       // They gave us a module name.
       // If the module is running, ask it for a status report.
-      // If not, print the last exit code, or something. Something like systemctl's output for a stopped service would be cool.
+      // If not, print the last exit code, or something.
+      pm2.disconnect();
     } else {
       // If no module name was passed, gather up some useful stuff and print it to console.
       // Running modules, uptime, init args, etc.
@@ -154,7 +173,7 @@ const userFunctions = {
   },
 };
 
-debug ? log.debug(argv) : null;
+debug ? clog.debug(argv) : null;
 
 if (argv._[0] !== undefined) {
   if (typeof userFunctions[argv._[0]] === 'function') {

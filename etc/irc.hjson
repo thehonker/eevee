@@ -1,0 +1,41 @@
+{
+  errorAction: 'die',
+  servers: {
+    wetfish: {
+      friendlyName: 'wetfish',
+      channels: ['#botspam'],
+      version: 'eevee version 0.0',
+      host: 'irc.wetfish.net',
+      port: 6697,
+      ssl: true,
+      auto_reconnect: true,
+      nick: 'eevee-dev',
+      username: 'eevee-dev',
+      gecos: 'eevee-dev',
+    },
+  },
+}
+
+/*
+Defaults: 
+new Irc.Client({
+    nick: 'ircbot',
+    username: 'ircbot',
+    gecos: 'ircbot',
+    encoding: 'utf8',
+    version: 'node.js irc-framework',
+    enable_chghost: false,
+    enable_echomessage: false,
+    auto_reconnect: true,
+    auto_reconnect_wait: 4000,
+    auto_reconnect_max_retries: 3,
+    ping_interval: 30,
+    ping_timeout: 120,
+    webirc: {
+        password: '',
+        username: '*',
+        hostname: 'users.host.isp.net',
+        ip: '1.1.1.1',
+    }
+});
+*/

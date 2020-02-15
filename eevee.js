@@ -3,10 +3,9 @@
 
 // Usage: eevee.js [init, start, stop, restart, config, status, console, dump]
 
-process.env.PM2_HOME = path.join(__dirname, '../.pm2');
+process.env.PM2_HOME = `${__dirname}/proc`;
 
 const fs = require('fs');
-const path = require('path');
 const clog = require('ee-log');
 const pm2 = require('pm2');
 const hjson = require('hjson');
@@ -15,11 +14,11 @@ const argv = require('yargs-parser')(process.argv.slice(2), {
 });
 
 var debug = true; // Set to true to override cli option --debug, set to false to respect --debug option
-argv.debug ? (debug = true) : null;
+if (argv.debug) debug = true;
 
 var verbose = true; // Set to true to override cli option --verbose, set to false to respect --verbose option
-argv.verbose ? (verbose = true) : null;
-debug ? (verbose = true) : null; // If debug is set to true then we'll turn on verbose as well
+if (argv.verbose) verbose = true;
+if (debug) verbose = true; // If debug is set to true then we'll turn on verbose as well
 
 const userFunctions = {
   // eslint-disable-next-line no-unused-vars
@@ -31,14 +30,14 @@ const userFunctions = {
       procList.forEach((proc) => {
         runningModules.push(proc.name);
       });
-      verbose ? console.log('Startup modules:' + runningModules) : null;
+      if (verbose) console.log('Startup modules:' + runningModules);
       startupConfig.initModules.forEach((ident) => {
         if (runningModules.includes(ident)) throw new Error('Module already running');
-        fs.access(path.join(__dirname, `/modules/${ident}.js`), (err) => {
+        fs.access(`${__dirname}/modules/${ident}.js`, (err) => {
           if (err) throw new Error(err);
-          pm2.start(path.join(__dirname, `/modules/${ident}.js`), (err) => {
+          pm2.start(`${__dirname}/modules/${ident}.js`, (err) => {
             if (err) throw new Error(err);
-            verbose ? console.log(`Module ${ident} started`) : null;
+            if (verbose) console.log(`Module ${ident} started`);
             pm2.disconnect();
           });
         });
@@ -51,12 +50,12 @@ const userFunctions = {
   shutdown: (argv, startupConfig) => {
     // Shutdown the bot
     pm2.list((err, procList) => {
-      debug ? clog.debug(procList) : null;
+      if (debug) clog.debug(procList);
       if (procList.length === 0) throw new Error('No processes running');
       procList.forEach((proc) => {
         pm2.delete(proc.name, (err) => {
           if (err) throw new Error(err);
-          debug ? clog.debug(proc.name, 'stopped') : null;
+          if (debug) clog.debug(proc.name, 'stopped');
           pm2.disconnect();
         });
       });
@@ -73,11 +72,11 @@ const userFunctions = {
         runningModules.push(proc.name);
       });
       if (runningModules.includes(ident)) throw new Error('Module already running');
-      fs.access(path.join(__dirname, `/modules/${ident}.js`), (err) => {
+      fs.access(`${__dirname}/modules/${ident}.js`, (err) => {
         if (err) throw new Error(err);
-        pm2.start(path.join(__dirname, `/modules/${ident}.js`), (err) => {
+        pm2.start(`${__dirname}/modules/${ident}.js`, (err) => {
           if (err) throw new Error(err);
-          debug ? clog.debug(ident, 'started') : null;
+          if (debug) clog.debug(ident, 'started');
           pm2.disconnect();
         });
       });
@@ -96,7 +95,7 @@ const userFunctions = {
       if (!runningModules.includes(ident)) throw new Error('Module not running');
       pm2.delete(ident, (err) => {
         if (err) throw new Error(err);
-        debug ? clog.debug(ident, 'stopped') : null;
+        if (debug) clog.debug(ident, 'stopped');
         pm2.disconnect();
       });
     });
@@ -173,12 +172,12 @@ const userFunctions = {
   },
 };
 
-debug ? clog.debug(argv) : null;
+if (debug) clog.debug(argv);
 
 if (argv._[0] !== undefined) {
   if (typeof userFunctions[argv._[0]] === 'function') {
     // eslint-disable-next-line security/detect-non-literal-fs-filename
-    fs.readFile(path.join(__dirname, '/etc/startup.hjson'), 'utf8', (err, data) => {
+    fs.readFile(`${__dirname}/etc/startup.hjson`, 'utf8', (err, data) => {
       if (err) throw new Error(err);
       // Load startup config
       const startupConfig = hjson.rt.parse(data);
@@ -190,7 +189,7 @@ if (argv._[0] !== undefined) {
 } else {
   // Treat no command as 'status'
   // eslint-disable-next-line security/detect-non-literal-fs-filename
-  fs.readFile(path.join(__dirname, '/etc/startup.hjson'), 'utf8', (err, data) => {
+  fs.readFile(`${__dirname}/etc/startup.hjson`, 'utf8', (err, data) => {
     if (err) throw new Error(err);
     // Load startup config
     const startupConfig = hjson.rt.parse(data);

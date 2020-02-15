@@ -13,11 +13,11 @@ const argv = require('yargs-parser')(process.argv.slice(2), {
 });
 
 var debug = true; // Set to true to override cli option --debug, set to false to respect --debug option
-argv.debug ? (debug = true) : null;
+if (argv.debug) debug = true;
 
 var verbose = true; // Set to true to override cli option --verbose, set to false to respect --verbose option
-argv.verbose ? (verbose = true) : null;
-debug ? (verbose = true) : null; // If debug is set to true then we'll turn on verbose as well
+if (argv.verbose) verbose = true;
+if (debug) verbose = true; // If debug is set to true then we'll turn on verbose as well
 
 // Pubsub for the rest of the bot
 const ipc = new nrp({ scope: 'eevee.main' });
@@ -33,14 +33,14 @@ workerIpc.on('error', (error) => {
 });
 
 ipc.on('irc:*', (data) => {
-  debug ? clog.debug('from main ipc', data) : null;
+  if (debug) clog.debug('from main ipc', data);
 });
 workerIpc.on('*', (data) => {
-  debug ? clog.debug('from worker', data) : null;
+  if (debug) clog.debug('from worker', data);
 });
 
 process.on('SIGINT', () => {
-  debug ? clog.debug('SIGINT received, closing') : null;
+  if (debug) clog.debug('SIGINT received, closing');
   console.log('SIGINT received, closing');
   ipc.quit();
   workerIpc.quit();
@@ -51,12 +51,12 @@ process.on('SIGINT', () => {
 fs.readFile('../etc/irc.hjson', 'utf8', (err, data) => {
   if (err) throw new Error(err);
   const config = hjson.rt.parse(data);
-  debug ? clog.debug('irc startup config', config) : null;
+  if (debug) clog.debug('irc startup config', config);
   Object.keys(config.servers).forEach((entry) => {
     // eslint-disable-next-line security/detect-object-injection
-    debug ? clog.debug('server config', config.servers[entry]) : null;
+    if (debug) clog.debug('server config', config.servers[entry]);
   });
 });
 
 // If we're running as a module, tell pm2 we're ready
-process.send ? process.send('ready') : null;
+if (process.send) process.send('ready');

@@ -44,9 +44,9 @@ ipc.emit('echo:command', message);
 message = {
   text: ['foo', 'bar', 'baz'],
   formattedText: [ // Let's pretend that Weazzy sent 'foo bar baz' in these colors
-    ["foo ", {color: "red",}], // So we'll give it back the same way
-    ["bar ", {color: "blue"}],
-    ["baz ", {style: "green"}],
+    ["foo ", {fgColor: "red",}], // So we'll give it back the same way
+    ["bar ", {fgColor: "blue", bgColor: "yellow"}],
+    ["baz ", {style: "bold", fgColor: "green"}],
   ],
   to: {
     server: 'irc.wetfish',

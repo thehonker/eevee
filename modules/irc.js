@@ -1,6 +1,6 @@
 'use strict';
 
-process.env.PM2_HOME = path.join(__dirname, '../.pm2');
+process.env.PM2_HOME = `${__dirname}/proc`;
 
 const clog = require('ee-log');
 const nrp = require('node-redis-pubsub');

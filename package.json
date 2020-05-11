@@ -5,11 +5,11 @@
   "main": "eevee.js",
   "dependencies": {
     "ee-log": "^3.0.9",
+    "fs-ext": "^2.0.0",
     "hjson": "^3.2.1",
     "irc-framework": "^4.6.0",
-    "node-redis-pubsub": "^4.0.0",
-    "pm2": "^4.2.1",
-    "pm2-promise": "^1.1.0",
+    "lockfile": "^1.0.4",
+    "qlobber-fsq": "^12.0.4",
     "yargs-parser": "^16.1.0"
   },
   "devDependencies": {
@@ -31,7 +31,7 @@
     "type": "git",
     "url": "git+https://github.com/epers/eevee.git"
   },
-  "author": "",
+  "author": "pers.edwin@gmail.com",
   "license": "MS-RSL",
   "bugs": {
     "url": "https://github.com/epers/eevee/issues"

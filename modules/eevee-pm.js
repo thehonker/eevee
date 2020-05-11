@@ -5,48 +5,43 @@
 const ident = 'eevee-pm';
 const debug = true;
 
+// This checks and creates the dirs in /tmp if necessary
+const procPath = require('../lib/common.js').createProcDir();
+
 const QlobberFSQ = require('qlobber-fsq').QlobberFSQ;
-const ipc = new QlobberFSQ({ fsq_dir: '/tmp/eevee/ipc' });
+const ipc = new QlobberFSQ({ fsq_dir: `${procPath}/ipc` });
 const clog = require('ee-log');
 const fs = require('fs');
 const lock = require('lockfile');
 
-const common = require('../lib/common.js');
-
-common.tmpDirTest();
-
-lock.lock(`/tmp/eevee/proc/${ident}.pid`, (err) => {
-  if (err) throw new Error(err);
-  fs.writeFile(`/tmp/eevee/proc/${ident}.pid`, process.pid, 'utf8', (err) => {
-    if (err) throw new Error(err);
-  });
+lock.lock(`${procPath}/proc/${ident}.pid`, (err) => {
+  if (err) throw new Error(`Unable to acquire lock ${procPath}/proc/${ident}.pid (Process already running?)`, err);
 });
+// eslint-disable-next-line security/detect-non-literal-fs-filename
+fs.writeFileSync(`${procPath}/proc/${ident}.pid`, process.pid, 'utf8');
 
+// Print every message we receive if debug is enabled
 if (debug) {
   ipc.subscribe(`${ident}.#`, (data, info) => {
     clog.debug('incoming IPC message: ', info.toString('utf8'), data.toString('utf8'));
   });
 }
 
+// Things that need to be done once the ipc is "connected"
 ipc.on('start', () => {
-  // Things that need to be done once the ipc is "connected."
+  if (debug) clog.debug('IPC "connected"');
 });
 
+// Handle sigint
 process.on('SIGINT', () => {
-  console.log('Received SIGINT, cleaning up...  (repeat to force exit)');
+  console.log('\nReceived SIGINT, cleaning up... (repeat to force)');
   process.removeAllListeners('SIGINT');
   process.on('SIGINT', () => {
     throw new Error('Received SIGINT twice, forcing exit.');
   });
-  setTimeout(() => {
-    throw new Error('Timeout expired after SIGINT, forcing exit.');
-  }, 5000);
-  ipc.publish('global.psinfo', `${ident}: SIGINT received`);
   ipc.unsubscribe();
   ipc.stop_watching();
   ipc.removeAllListeners();
-  lock.unlock(`/tmp/eevee/proc/${ident}.pid`, (err) => {
-    if (err) throw new Error(err);
-  });
+  lock.unlockSync(`${procPath}/proc/${ident}.pid`);
   process.exitCode = 0;
 });

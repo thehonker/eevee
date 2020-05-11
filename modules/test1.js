@@ -2,10 +2,8 @@
 
 // Process manager for eevee-bot
 
-const ident = 'eevee-pm';
+const ident = 'test1';
 const debug = true;
-
-const clog = require('ee-log');
 
 const common = require('../lib/common.js');
 
@@ -13,6 +11,8 @@ const common = require('../lib/common.js');
 const procPath = common.createProcDir();
 const ipc = common.ipc();
 const lock = common.lock(ident);
+
+const clog = require('ee-log');
 
 // Print every message we receive if debug is enabled
 if (debug) {
@@ -26,6 +26,22 @@ ipc.on('start', () => {
   if (debug) clog.debug('IPC "connected"');
 });
 
+const foo = setInterval(() => {
+  clog.debug('sending ipc message');
+  ipc.publish('eevee-pm.info', 'hello');
+}, 500);
+
+// Handle sigint
 process.on('SIGINT', () => {
-  common.handleSIGINT(ident, ipc, lock);
+  console.log('\nReceived SIGINT, cleaning up... (repeat to force)');
+  process.removeAllListeners('SIGINT');
+  process.on('SIGINT', () => {
+    throw new Error('Received SIGINT twice, forcing exit.');
+  });
+  ipc.unsubscribe();
+  ipc.stop_watching();
+  ipc.removeAllListeners();
+  clearInterval(foo);
+  lock.unlockSync(`${procPath}/proc/${ident}.pid`);
+  process.exitCode = 0;
 });

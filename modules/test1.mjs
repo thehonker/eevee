@@ -7,7 +7,7 @@ const debug = true;
 
 import { default as clog } from 'ee-log';
 
-import { ipc, handleSIGINT, lockPidFile } from '../lib/common.mjs';
+import { ipc, lockPidFile, handleSIGINT } from '../lib/common.mjs';
 
 lockPidFile(ident);
 

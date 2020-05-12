@@ -7,15 +7,14 @@ const debug = true;
 
 import { default as clog } from 'ee-log';
 
-import { ipc, handleSIGINT, lockPidFile, checkProcPath } from '../lib/common.mjs';
+import { ipc, handleSIGINT, lockPidFile } from '../lib/common.mjs';
 
-checkProcPath();
 lockPidFile(ident);
 
 // Print every message we receive if debug is enabled
 if (debug) {
   ipc.subscribe(`${ident}.#`, (data, info) => {
-    clog.debug('incoming IPC message: ', info, data);
+    clog.debug('incoming IPC message: ', info, data.toString());
   });
 }
 

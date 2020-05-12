@@ -5,19 +5,17 @@
 const ident = 'eevee-pm';
 const debug = true;
 
-const clog = require('ee-log');
+import { default as clog } from 'ee-log';
 
-const common = require('../lib/common.js');
+import { ipc, handleSIGINT, lockPidFile, checkProcPath } from '../lib/common.mjs';
 
-// This checks and creates the dirs in /tmp if necessary
-const procPath = common.createProcDir();
-const ipc = common.ipc();
-const lock = common.lock(ident);
+checkProcPath();
+lockPidFile(ident);
 
 // Print every message we receive if debug is enabled
 if (debug) {
   ipc.subscribe(`${ident}.#`, (data, info) => {
-    clog.debug('incoming IPC message: ', info.toString('utf8'), data.toString('utf8'));
+    clog.debug('incoming IPC message: ', info, data);
   });
 }
 
@@ -27,5 +25,5 @@ ipc.on('start', () => {
 });
 
 process.on('SIGINT', () => {
-  common.handleSIGINT(ident, ipc, lock);
+  handleSIGINT(ident, ipc);
 });

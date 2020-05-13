@@ -2,7 +2,7 @@
 
 // Process manager for eevee-bot
 
-const ident = 'test1';
+const ident = 'test2';
 const debug = true;
 
 import { default as clog } from 'ee-log';
@@ -21,15 +21,14 @@ if (debug) {
 // Things that need to be done once the ipc is "connected"
 ipc.on('start', () => {
   if (debug) clog.debug('IPC "connected"');
-  process.send('ready');
+  clog.debug('Sending stop request');
+  const message = JSON.stringify({
+    target: 'test1',
+    replyTo: 'test2',
+  });
+  ipc.publish('eevee-pm.request.stop', message);
 });
 
 process.on('SIGINT', () => {
-  clearInterval(foo);
   handleSIGINT(ident, ipc);
 });
-
-const foo = setInterval(() => {
-  clog.debug('sending ipc message');
-  ipc.publish('eevee-pm.info', 'hello');
-}, 500);

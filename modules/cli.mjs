@@ -1,35 +1,30 @@
+#!/usr/bin/env node
 'use strict';
 
-// Process manager for eevee-bot
+// Usage: eevee [init, start, stop, restart, config, status, console, dump]
 
-const ident = 'test1';
+const ident = 'cli';
 const debug = true;
 
 import { default as clog } from 'ee-log';
-
+import { default as fs } from 'fs';
 import { ipc, lockPidFile, handleSIGINT } from '../lib/common.mjs';
 
+// Create and lock a pid file at /tmp/eevee/proc/eevee-pm.pid
 lockPidFile(ident);
 
 // Print every message we receive if debug is enabled
 if (debug) {
   ipc.subscribe(`${ident}.#`, (data, info) => {
-    clog.debug('incoming IPC message: ', info, data.toString());
+    clog.debug('Incoming IPC message: ', data.toString(), info);
   });
 }
 
 // Things that need to be done once the ipc is "connected"
 ipc.on('start', () => {
   if (debug) clog.debug('IPC "connected"');
-  process.send('ready');
 });
 
 process.on('SIGINT', () => {
-  clearInterval(foo);
   handleSIGINT(ident, ipc);
 });
-
-const foo = setInterval(() => {
-  clog.debug('sending ipc message');
-  ipc.publish('eevee-pm.info', 'hello');
-}, 500);

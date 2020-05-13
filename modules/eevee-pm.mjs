@@ -16,7 +16,7 @@ lockPidFile(ident);
 // Print every message we receive if debug is enabled
 if (debug) {
   ipc.subscribe(`${ident}.#`, (data, info) => {
-    //clog.debug('Incoming IPC message: ', data.toString(), info);
+    clog.debug('Incoming IPC message: ', data.toString(), info);
   });
 }
 
@@ -54,6 +54,7 @@ function start(request) {
   const out = fs.openSync(`../log/${request.target}.log`, 'a');
   // eslint-disable-next-line security/detect-non-literal-fs-filename
   const err = fs.openSync(`../log/${request.target}.log`, 'a');
+
   const child = child_process.fork(`./${request.target}.mjs`, {
     detached: true,
     stdio: ['ignore', out, err, 'ipc'],
@@ -83,12 +84,14 @@ function start(request) {
       child.removeAllListeners();
       child.kill('SIGTERM');
     }
+
     ipc.publish(`${request.replyTo}.reply`, reply);
   });
 }
 
 function stop(request) {
   if (debug) clog.debug('Attempting module stop: ', request);
+
   // eslint-disable-next-line security/detect-non-literal-fs-filename
   fs.readFile(`/tmp/eevee/proc/${request.target}.pid`, 'utf8', (err, data) => {
     if (err) {
@@ -98,8 +101,8 @@ function stop(request) {
         result: 'fail',
       });
       ipc.publish(`${request.replyTo}.reply`, reply);
-      return 1;
     }
+
     if (debug) clog.debug(`Found module PID ${data}, sending SIGINT`);
     process.kill(data, 'SIGINT');
     const reply = JSON.stringify({

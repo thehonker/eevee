@@ -21,7 +21,7 @@ if (debug) {
 // Things that need to be done once the ipc is "connected"
 ipc.on('start', () => {
   if (debug) clog.debug('IPC "connected"');
-  process.send('ready');
+  if (process.send) process.send('ready');
 });
 
 process.on('SIGINT', () => {

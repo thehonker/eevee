@@ -7,7 +7,6 @@ const ident = 'cli';
 const debug = true;
 
 import { default as clog } from 'ee-log';
-import { default as fs } from 'fs';
 import { ipc, lockPidFile, handleSIGINT } from '../lib/common.mjs';
 
 // Create and lock a pid file at /tmp/eevee/proc/eevee-pm.pid

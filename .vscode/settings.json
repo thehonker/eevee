@@ -11,6 +11,7 @@
     "hjson",
     "microservices",
     "pubsub",
+    "qfsq",
     "readonly",
     "systemctl",
     "wetfish"

@@ -44,12 +44,13 @@ const argv = yargs
           clog.debug('Reply message: ', data, info);
           if (data.result === 'success' && data.messageID === messageID) {
             // eslint-disable-next-line prettier/prettier
-            console.log(`Command: "start ${argv.module}" completed successfully (child pid is ${data.childPID}), exiting...`,);
+            console.log(`Command: "start ${argv.module}" completed successfully (pid is ${data.childPID}), exiting...`,);
             exit(ident);
           } else if (data.result === 'fail' && data.messageID === messageID) {
             var string = null;
             if (data.err.code === 'E_ALREADY_RUNNING') {
-              string = `Command "start ${argv.module}" failed: ${data.err.code} at ${data.err.path}. Module already running?`;
+              string = `Command "start ${argv.module}" failed: ${data.err.code} (at ${data.err.path}).\n`;
+              string += `Module already running? (pid ${data.childPID})`;
             } else {
               string = `Command "start ${argv.module}" failed: Unknown error:\n`;
               string += JSON.stringify(data.err, null, 2);
@@ -86,7 +87,7 @@ const argv = yargs
           clog.debug('Reply message: ', data, info);
           if (data.result === 'success' && data.messageID === messageID) {
             // eslint-disable-next-line prettier/prettier
-            console.log(`Command: stop ${argv.module} completed successfully (child PID was ${data.childPID}), exiting...`);
+            console.log(`Command: stop ${argv.module} completed successfully (pid was ${data.childPID}), exiting...`);
             exit(ident);
           } else if (data.result === 'fail' && data.messageID === messageID) {
             var string = null;

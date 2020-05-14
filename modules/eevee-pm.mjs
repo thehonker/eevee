@@ -32,20 +32,20 @@ ipc.on('start', () => {
   });
 
   ipc.subscribe('eevee-pm.request.#', (data, info) => {
-    data = JSON.parse(data);
-    clog.debug('Request received: ', data, info);
-    if (data.action === 'start') {
-      clog.debug('Start request received: ', data, info);
-      start(data);
-    } else if (data.action === 'stop') {
-      clog.debug('Stop request received: ', data, info);
-      stop(data);
-    } else if (data.action === 'restart') {
-      clog.debug('Restart request received: ', data, info);
-      stop(data);
-      start(data);
+    const request = JSON.parse(data);
+    clog.debug('Request received: ', request, info);
+    if (request.action === 'start') {
+      clog.debug('Start request received: ', request, info);
+      start(request);
+    } else if (request.action === 'stop') {
+      clog.debug('Stop request received: ', request, info);
+      stop(request);
+    } else if (request.action === 'restart') {
+      clog.debug('Restart request received: ', request, info);
+      stop(request);
+      start(request);
     } else {
-      clog.warn('Unknown request: ', data, info);
+      clog.warn('Unknown request: ', request, info);
     }
   });
 });

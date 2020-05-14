@@ -8,7 +8,7 @@ const debug = true;
 
 import { default as clog } from 'ee-log';
 import { default as yargs } from 'yargs';
-import { ipc, lockPidFile, handleSIGINT } from '../lib/common.mjs';
+import { ipc, lockPidFile, handleSIGINT, genMessageID } from '../lib/common.mjs';
 
 const args = yargs
   .usage('Usage: $0 [command] [options]')
@@ -29,8 +29,10 @@ const args = yargs
       clog.debug('argv: ', args);
       ipc.on('start', () => {
         if (debug) clog.debug('IPC "connected"');
+        const messageID = genMessageID();
         clog.debug('Sending start request');
         const message = JSON.stringify({
+          messageID: messageID,
           target: args.module,
           notify: ident,
           action: 'start',
@@ -40,7 +42,7 @@ const args = yargs
         ipc.subscribe(`${ident}.reply`, (data, info) => {
           data = JSON.parse(data);
           clog.debug('Reply message: ', data, info);
-          if (data.result === 'success') handleSIGINT(ident, ipc);
+          if (data.result === 'success' && data.messageID === messageID) handleSIGINT(ident, ipc);
         });
       });
     },
@@ -55,8 +57,10 @@ const args = yargs
       clog.debug('argv: ', args);
       ipc.on('start', () => {
         if (debug) clog.debug('IPC "connected"');
+        const messageID = genMessageID();
         clog.debug('Sending stop request');
         const message = JSON.stringify({
+          messageID: messageID,
           target: args.module,
           notify: ident,
           action: 'stop',
@@ -66,7 +70,7 @@ const args = yargs
         ipc.subscribe(`${ident}.reply`, (data, info) => {
           data = JSON.parse(data);
           clog.debug('Reply message: ', data, info);
-          if (data.result === 'success') handleSIGINT(ident, ipc);
+          if (data.result === 'success' && data.messageID === messageID) handleSIGINT(ident, ipc);
         });
       });
     },

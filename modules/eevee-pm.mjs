@@ -72,6 +72,7 @@ function start(request) {
     if (message === 'ready') {
       clog.info(`Started module: ${request.target}`);
       reply = JSON.stringify({
+        messageID: request.messageID,
         command: 'start',
         target: request.target,
         result: 'success',
@@ -83,6 +84,7 @@ function start(request) {
     if (message === 'fail') {
       clog.error(`Failed to start module ${request.target}`);
       reply = JSON.stringify({
+        messageID: request.messageID,
         command: 'start',
         target: request.target,
         result: 'fail',
@@ -102,6 +104,7 @@ function stop(request) {
   fs.readFile(`/tmp/eevee/proc/${request.target}.pid`, 'utf8', (err, data) => {
     if (err) {
       const reply = JSON.stringify({
+        messageID: request.messageID,
         command: 'stop',
         target: request.target,
         result: 'fail',
@@ -112,6 +115,7 @@ function stop(request) {
     if (debug) clog.debug(`Found module PID ${data}, sending SIGINT`);
     process.kill(data, 'SIGINT');
     const reply = JSON.stringify({
+      messageID: request.messageID,
       command: 'stop',
       target: request.target,
       result: 'success',

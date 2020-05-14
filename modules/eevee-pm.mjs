@@ -55,53 +55,111 @@ ipc.subscribe('eevee-pm.request.#', (data, info) => {
 
 function start(request) {
   if (debug) clog.debug('Attempting module start: ', request);
-
-  // eslint-disable-next-line security/detect-non-literal-fs-filename
-  const out = fs.openSync(`../log/${request.target}.log`, 'a');
-  // eslint-disable-next-line security/detect-non-literal-fs-filename
-  const err = fs.openSync(`../log/${request.target}.log`, 'a');
-
-  const child = child_process.fork(`./${request.target}.mjs`, {
-    detached: true,
-    stdio: ['ignore', out, err, 'ipc'],
-  });
-
-  // Wait for the child to tell us that its ready
-  child.on('message', (message) => {
-    var reply;
-    if (message === 'ready') {
-      clog.info(`Started module: ${request.target}`);
-      reply = JSON.stringify({
-        messageID: request.messageID,
-        command: 'start',
-        target: request.target,
-        result: 'success',
-        childPID: child.pid,
+  isRunning(request.target, (err, pid) => {
+    // If we receive an error object, the module isn't running.
+    if (err) {
+      var out = null;
+      try {
+        // Can we open the log file?
+        // eslint-disable-next-line security/detect-non-literal-fs-filename
+        out = fs.openSync(`../log/${request.target}.log`, 'a');
+      } catch (err) {
+        const reply = JSON.stringify({
+          messageID: request.messageID,
+          command: 'start',
+          target: request.target,
+          result: 'fail',
+          childPID: null,
+          err: err,
+        });
+        ipc.publish(`${request.notify}.reply`, reply);
+        return;
+      }
+      var child = null;
+      try {
+        child = child_process.fork(`./${request.target}.mjs`, {
+          detached: true,
+          stdio: ['ignore', out, out, 'ipc'],
+        });
+      } catch (err) {
+        clog.error(`Failed to start module ${request.target}: E_FORK_FAILED`);
+        const error = new Error('Unable to fork child');
+        error.msg = error.message;
+        error.code = 'E_FORK_FAILED';
+        error.path = `/tmp/eevee/proc/${request.target}.pid`;
+        const reply = JSON.stringify({
+          messageID: request.messageID,
+          command: 'start',
+          target: request.target,
+          result: 'fail',
+          childPID: null,
+          err: error,
+        });
+        ipc.publish(`${request.notify}.reply`, reply);
+        return;
+      }
+      // Wait for the child to tell us that it is ready
+      child.on('message', (message) => {
+        if (message === 'ready') {
+          // Child says "I'm good to go"
+          clog.info(`Started module: ${request.target}`);
+          const reply = JSON.stringify({
+            messageID: request.messageID,
+            command: 'start',
+            target: request.target,
+            result: 'success',
+            childPID: child.pid,
+            err: null,
+          });
+          child.removeAllListeners();
+          child.disconnect();
+          child.unref();
+          ipc.publish(`${request.notify}.reply`, reply);
+          return;
+        } else if (message === 'fail') {
+          // Child says "I'm broken!"
+          clog.error(`Failed to start module ${request.target}: E_CHILD_REPORT_INIT_FAIL`);
+          const error = new Error('Child reports init failed');
+          error.msg = error.message;
+          error.code = 'E_CHILD_REPORT_INIT_FAIL';
+          error.path = `/tmp/eevee/proc/${request.target}.pid`;
+          const reply = JSON.stringify({
+            messageID: request.messageID,
+            command: 'start',
+            target: request.target,
+            result: 'fail',
+            childPID: null,
+            err: error,
+          });
+          child.removeAllListeners();
+          child.kill('SIGTERM');
+          ipc.publish(`${request.notify}.reply`, reply);
+          return;
+        }
       });
-      child.removeAllListeners();
-      child.disconnect();
-      child.unref();
-    }
-    if (message === 'fail') {
-      clog.error(`Failed to start module ${request.target}: E_CHILD_REPORT_INIT_FAIL`);
-      reply = JSON.stringify({
+    } else if (typeof pid === 'number') {
+      // If we receive a number for pid then the module is (probably) already running.
+      const error = new Error('Module already running');
+      error.msg = error.message;
+      error.code = 'E_ALREADY_RUNNING';
+      error.path = `/tmp/eevee/proc/${request.target}.pid`;
+      const reply = JSON.stringify({
         messageID: request.messageID,
         command: 'start',
         target: request.target,
         result: 'fail',
-        err: 'E_CHILD_REPORT_INIT_FAIL',
+        childPID: pid,
+        err: error,
       });
-      child.removeAllListeners();
-      child.kill('SIGTERM');
+      ipc.publish(`${request.notify}.reply`, reply);
+      return;
     }
-    ipc.publish(`${request.notify}.reply`, reply);
   });
 }
 
 function stop(request) {
   if (debug) clog.debug('Attempting module stop: ', request);
-  // eslint-disable-next-line security/detect-non-literal-fs-filename
-  fs.readFile(`/tmp/eevee/proc/${request.target}.pid`, 'utf8', (err, data) => {
+  isRunning(request.target, (err, pid) => {
     if (err) {
       clog.error(err);
       const reply = JSON.stringify({
@@ -109,35 +167,48 @@ function stop(request) {
         command: 'stop',
         target: request.target,
         result: 'fail',
-        err: {
-          exception: 'E_CHILD_PID_FILE',
-          extException: err.code,
-          errMessage: err.message,
-        },
+        childPID: null,
+        err: err,
       });
       ipc.publish(`${request.notify}.reply`, reply);
       return;
-    }
-    if (typeof Number(data) === 'number') {
-      if (debug) clog.debug(`Found module PID ${Number(data.parseInt)}, sending SIGINT`);
-      process.kill(Number(data), 'SIGINT');
+    } else if (typeof pid === 'number') {
+      if (debug) clog.debug(`Found module PID ${pid}, sending SIGINT`);
+      process.kill(pid, 'SIGINT');
       const reply = JSON.stringify({
         messageID: request.messageID,
         command: 'stop',
         target: request.target,
         result: 'success',
+        childPID: pid,
+        err: null,
       });
       ipc.publish(`${request.notify}.reply`, reply);
       return;
+    }
+  });
+}
+
+function isRunning(ident, cb) {
+  // eslint-disable-next-line security/detect-non-literal-fs-filename
+  fs.readFile(`/tmp/eevee/proc/${ident}.pid`, 'utf8', (err, data) => {
+    if (err) {
+      clog.error(err);
+      cb(err);
+      return;
+    }
+    data = Number.parseInt(data.toString());
+    if (!Number.isNaN(data)) {
+      if (debug) clog.debug(`Found module PID ${Number(data)}`);
+      cb(null, Number(data));
+      return;
     } else {
-      const reply = JSON.stringify({
-        messageID: request.messageID,
-        command: 'stop',
-        target: request.target,
-        result: 'fail',
-        err: 'E_PID_FILE_INVALID',
-      });
-      ipc.publish(`${request.notify}.reply`, reply);
+      const error = new Error('PID file format invalid');
+      error.msg = error.message;
+      error.code = 'E_PID_FILE_INVALID';
+      error.path = `/tmp/eevee/proc/${ident}.pid`;
+      clog.error(error);
+      cb(error);
       return;
     }
   });

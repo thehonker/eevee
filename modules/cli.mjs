@@ -43,8 +43,19 @@ const argv = yargs
           data = JSON.parse(data);
           clog.debug('Reply message: ', data, info);
           if (data.result === 'success' && data.messageID === messageID) {
-            console.log(`Command: start ${argv.module} completed successfully, exiting...`);
+            // eslint-disable-next-line prettier/prettier
+            console.log(`Command: "start ${argv.module}" completed successfully (child pid is ${data.childPID}), exiting...`,);
             exit(ident);
+          } else if (data.result === 'fail' && data.messageID === messageID) {
+            var string = null;
+            if (data.err.code === 'E_ALREADY_RUNNING') {
+              string = `Command "start ${argv.module}" failed: ${data.err.code} at ${data.err.path}. Module already running?`;
+            } else {
+              string = `Command "start ${argv.module}" failed: Unknown error:\n`;
+              string += JSON.stringify(data.err, null, 2);
+            }
+            console.log(string);
+            exit(ident, 1);
           }
         });
       });
@@ -74,12 +85,17 @@ const argv = yargs
           data = JSON.parse(data);
           clog.debug('Reply message: ', data, info);
           if (data.result === 'success' && data.messageID === messageID) {
-            console.log(`Command: stop ${argv.module} completed successfully, exiting...`);
+            // eslint-disable-next-line prettier/prettier
+            console.log(`Command: stop ${argv.module} completed successfully (child PID was ${data.childPID}), exiting...`);
             exit(ident);
           } else if (data.result === 'fail' && data.messageID === messageID) {
-            var string = `"stop ${argv.module}" failed: ${data.err.exception} `;
-            string += `${data.err.errMessage ? `(${data.err.errMessage})` : ''}`;
-            string += `, exiting...`;
+            var string = null;
+            if (data.err.code === 'ENOENT') {
+              string = `Command "stop ${argv.module}" failed: ${data.err.code} at ${data.err.path}. Module not running?`;
+            } else {
+              string = `Command "stop ${argv.module}" failed: Unknown error:\n`;
+              string += JSON.stringify(data.err, null, 2);
+            }
             console.log(string);
             exit(ident, 1);
           }
@@ -95,7 +111,7 @@ lockPidFile(ident);
 // Print every message we receive if debug is enabled
 if (debug) {
   ipc.subscribe(`${ident}.#`, (data, info) => {
-    clog.debug('Incoming IPC message: ', data.toString(), info);
+    clog.debug('Incoming IPC message: ', JSON.stringify(JSON.parse(data.toString()), null, 2), info);
   });
 }
 

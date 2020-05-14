@@ -31,21 +31,26 @@ process.on('SIGINT', () => {
 });
 
 ipc.subscribe('eevee-pm.admin.#', (data, info) => {
-  clog.debug('Admin message: ', data.toString(), info);
+  data = JSON.parse(data);
+  clog.debug('Admin message: ', data, info);
 });
 
 ipc.subscribe('eevee-pm.request.#', (data, info) => {
-  clog.debug('Request received: ', data.toString(), info);
-});
-
-ipc.subscribe('eevee-pm.request.start', (data, info) => {
-  clog.debug('Start request received: ', data.toString(), info);
-  start(JSON.parse(data));
-});
-
-ipc.subscribe('eevee-pm.request.stop', (data, info) => {
-  clog.debug('Stop request received: ', data.toString(), info);
-  stop(JSON.parse(data));
+  data = JSON.parse(data);
+  clog.debug('Request received: ', data, info);
+  if (data.action === 'start') {
+    clog.debug('Start request received: ', data, info);
+    start(data);
+  } else if (data.action === 'stop') {
+    clog.debug('Stop request received: ', data, info);
+    stop(data);
+  } else if (data.action === 'restart') {
+    clog.debug('Restart request received: ', data, info);
+    stop(data);
+    start(data);
+  } else {
+    clog.warn('Unknown request: ', data, info);
+  }
 });
 
 function start(request) {
@@ -86,7 +91,7 @@ function start(request) {
       child.kill('SIGTERM');
     }
 
-    ipc.publish(`${request.replyTo}.reply`, reply);
+    ipc.publish(`${request.notify}.reply`, reply);
   });
 }
 
@@ -101,7 +106,7 @@ function stop(request) {
         target: request.target,
         result: 'fail',
       });
-      ipc.publish(`${request.replyTo}.reply`, reply);
+      ipc.publish(`${request.notify}.reply`, reply);
     }
 
     if (debug) clog.debug(`Found module PID ${data}, sending SIGINT`);
@@ -111,6 +116,6 @@ function stop(request) {
       target: request.target,
       result: 'success',
     });
-    ipc.publish(`${request.replyTo}.reply`, reply);
+    ipc.publish(`${request.notify}.reply`, reply);
   });
 }

@@ -24,9 +24,16 @@ ipc.on('start', () => {
   clog.debug('Sending stop request');
   const message = JSON.stringify({
     target: 'test1',
-    replyTo: 'test2',
+    notify: 'test2',
+    action: 'stop',
+    force: 'false',
   });
-  ipc.publish('eevee-pm.request.stop', message);
+  ipc.publish('eevee-pm.request', message);
+  ipc.subscribe('test2.reply', (data, info) => {
+    data = JSON.parse(data);
+    clog.debug('Reply message: ', data, info);
+    if (data.result === 'success') handleSIGINT(ident, ipc);
+  });
 });
 
 process.on('SIGINT', () => {

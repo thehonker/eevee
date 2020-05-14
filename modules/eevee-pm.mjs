@@ -13,44 +13,45 @@ import { ipc, lockPidFile, handleSIGINT } from '../lib/common.mjs';
 // Create and lock a pid file at /tmp/eevee/proc/eevee-pm.pid
 lockPidFile(ident);
 
-// Print every message we receive if debug is enabled
-if (debug) {
-  ipc.subscribe(`${ident}.#`, (data, info) => {
-    clog.debug('Incoming IPC message: ', data.toString(), info);
-  });
-}
-
 // Things that need to be done once the ipc is "connected"
 ipc.on('start', () => {
   if (debug) clog.debug('IPC "connected"');
+
+  // Print every message we receive if debug is enabled
+  if (debug) {
+    ipc.subscribe(`${ident}.#`, (data, info) => {
+      clog.debug('Incoming IPC message: ', data.toString(), info);
+    });
+  }
+
   if (process.send) process.send('ready');
+
+  ipc.subscribe('eevee-pm.admin.#', (data, info) => {
+    data = JSON.parse(data);
+    clog.debug('Admin message: ', data, info);
+  });
+
+  ipc.subscribe('eevee-pm.request.#', (data, info) => {
+    data = JSON.parse(data);
+    clog.debug('Request received: ', data, info);
+    if (data.action === 'start') {
+      clog.debug('Start request received: ', data, info);
+      start(data);
+    } else if (data.action === 'stop') {
+      clog.debug('Stop request received: ', data, info);
+      stop(data);
+    } else if (data.action === 'restart') {
+      clog.debug('Restart request received: ', data, info);
+      stop(data);
+      start(data);
+    } else {
+      clog.warn('Unknown request: ', data, info);
+    }
+  });
 });
 
 process.on('SIGINT', () => {
   handleSIGINT(ident, ipc);
-});
-
-ipc.subscribe('eevee-pm.admin.#', (data, info) => {
-  data = JSON.parse(data);
-  clog.debug('Admin message: ', data, info);
-});
-
-ipc.subscribe('eevee-pm.request.#', (data, info) => {
-  data = JSON.parse(data);
-  clog.debug('Request received: ', data, info);
-  if (data.action === 'start') {
-    clog.debug('Start request received: ', data, info);
-    start(data);
-  } else if (data.action === 'stop') {
-    clog.debug('Stop request received: ', data, info);
-    stop(data);
-  } else if (data.action === 'restart') {
-    clog.debug('Restart request received: ', data, info);
-    stop(data);
-    start(data);
-  } else {
-    clog.warn('Unknown request: ', data, info);
-  }
 });
 
 function start(request) {

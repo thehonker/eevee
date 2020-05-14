@@ -44,7 +44,7 @@ const argv = yargs
           clog.debug('Reply message: ', data, info);
           if (data.result === 'success' && data.messageID === messageID) {
             // eslint-disable-next-line prettier/prettier
-            console.log(`Command: "start ${argv.module}" completed successfully (pid is ${data.childPID}), exiting...`,);
+          console.log(`Command: "start ${argv.module}" completed successfully (pid is ${data.childPID})`,);
             exit(ident);
           } else if (data.result === 'fail' && data.messageID === messageID) {
             var string = null;
@@ -87,7 +87,7 @@ const argv = yargs
           clog.debug('Reply message: ', data, info);
           if (data.result === 'success' && data.messageID === messageID) {
             // eslint-disable-next-line prettier/prettier
-            console.log(`Command: stop ${argv.module} completed successfully (pid was ${data.childPID}), exiting...`);
+          console.log(`Command: stop ${argv.module} completed successfully (pid was ${data.childPID})`);
             exit(ident);
           } else if (data.result === 'fail' && data.messageID === messageID) {
             var string = null;
@@ -109,16 +109,15 @@ const argv = yargs
 // Create and lock a pid file at /tmp/eevee/proc/eevee-pm.pid
 lockPidFile(ident);
 
-// Print every message we receive if debug is enabled
-if (debug) {
-  ipc.subscribe(`${ident}.#`, (data, info) => {
-    clog.debug('Incoming IPC message: ', JSON.stringify(JSON.parse(data.toString()), null, 2), info);
-  });
-}
-
 // Things that need to be done once the ipc is "connected"
 ipc.on('start', () => {
   if (debug) clog.debug('IPC "connected"');
+  // Print every message we receive if debug is enabled
+  if (debug) {
+    ipc.subscribe(`${ident}.#`, (data, info) => {
+      clog.debug('Incoming IPC message: ', JSON.stringify(JSON.parse(data.toString()), null, 2), info);
+    });
+  }
 });
 
 process.on('SIGINT', () => {

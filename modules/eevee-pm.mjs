@@ -76,50 +76,69 @@ function start(request) {
         command: 'start',
         target: request.target,
         result: 'success',
+        childPID: child.pid,
       });
       child.removeAllListeners();
       child.disconnect();
       child.unref();
     }
     if (message === 'fail') {
-      clog.error(`Failed to start module ${request.target}`);
+      clog.error(`Failed to start module ${request.target}: E_CHILD_REPORT_INIT_FAIL`);
       reply = JSON.stringify({
         messageID: request.messageID,
         command: 'start',
         target: request.target,
         result: 'fail',
+        err: 'E_CHILD_REPORT_INIT_FAIL',
       });
       child.removeAllListeners();
       child.kill('SIGTERM');
     }
-
     ipc.publish(`${request.notify}.reply`, reply);
   });
 }
 
 function stop(request) {
   if (debug) clog.debug('Attempting module stop: ', request);
-
   // eslint-disable-next-line security/detect-non-literal-fs-filename
   fs.readFile(`/tmp/eevee/proc/${request.target}.pid`, 'utf8', (err, data) => {
     if (err) {
+      clog.error(err);
       const reply = JSON.stringify({
         messageID: request.messageID,
         command: 'stop',
         target: request.target,
         result: 'fail',
+        err: {
+          exception: 'E_CHILD_PID_FILE',
+          extException: err.code,
+          errMessage: err.message,
+        },
       });
       ipc.publish(`${request.notify}.reply`, reply);
+      return;
     }
-
-    if (debug) clog.debug(`Found module PID ${data}, sending SIGINT`);
-    process.kill(data, 'SIGINT');
-    const reply = JSON.stringify({
-      messageID: request.messageID,
-      command: 'stop',
-      target: request.target,
-      result: 'success',
-    });
-    ipc.publish(`${request.notify}.reply`, reply);
+    if (typeof Number(data) === 'number') {
+      if (debug) clog.debug(`Found module PID ${Number(data.parseInt)}, sending SIGINT`);
+      process.kill(Number(data), 'SIGINT');
+      const reply = JSON.stringify({
+        messageID: request.messageID,
+        command: 'stop',
+        target: request.target,
+        result: 'success',
+      });
+      ipc.publish(`${request.notify}.reply`, reply);
+      return;
+    } else {
+      const reply = JSON.stringify({
+        messageID: request.messageID,
+        command: 'stop',
+        target: request.target,
+        result: 'fail',
+        err: 'E_PID_FILE_INVALID',
+      });
+      ipc.publish(`${request.notify}.reply`, reply);
+      return;
+    }
   });
 }

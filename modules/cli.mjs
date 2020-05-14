@@ -8,15 +8,15 @@ const debug = true;
 
 import { default as clog } from 'ee-log';
 import { default as yargs } from 'yargs';
-import { ipc, lockPidFile, handleSIGINT, genMessageID } from '../lib/common.mjs';
+import { ipc, lockPidFile, exit, handleSIGINT, genMessageID } from '../lib/common.mjs';
 
-const args = yargs
+const argv = yargs
   .usage('Usage: $0 [command] [options]')
   .command({
     command: ['status [module]', '$0'],
     desc: 'Show bot or module status',
-    handler: (args) => {
-      clog.debug('argv: ', args);
+    handler: (argv) => {
+      clog.debug('argv: ', argv);
     },
   })
   .command({
@@ -25,24 +25,27 @@ const args = yargs
     builder: (yargs) => {
       yargs.default('force', 'false');
     },
-    handler: (args) => {
-      clog.debug('argv: ', args);
+    handler: (argv) => {
+      clog.debug('argv: ', argv);
       ipc.on('start', () => {
         if (debug) clog.debug('IPC "connected"');
         const messageID = genMessageID();
         clog.debug('Sending start request');
         const message = JSON.stringify({
           messageID: messageID,
-          target: args.module,
+          target: argv.module,
           notify: ident,
           action: 'start',
-          force: args.force,
+          force: argv.force,
         });
         ipc.publish('eevee-pm.request', message);
         ipc.subscribe(`${ident}.reply`, (data, info) => {
           data = JSON.parse(data);
           clog.debug('Reply message: ', data, info);
-          if (data.result === 'success' && data.messageID === messageID) handleSIGINT(ident, ipc);
+          if (data.result === 'success' && data.messageID === messageID) {
+            console.log(`Command: start ${argv.module} completed successfully, exiting...`);
+            exit(ident);
+          }
         });
       });
     },
@@ -53,31 +56,38 @@ const args = yargs
     builder: (yargs) => {
       yargs.default('force', 'false');
     },
-    handler: (args) => {
-      clog.debug('argv: ', args);
+    handler: (argv) => {
+      clog.debug('argv: ', argv);
       ipc.on('start', () => {
         if (debug) clog.debug('IPC "connected"');
         const messageID = genMessageID();
         clog.debug('Sending stop request');
         const message = JSON.stringify({
           messageID: messageID,
-          target: args.module,
+          target: argv.module,
           notify: ident,
           action: 'stop',
-          force: args.force,
+          force: argv.force,
         });
         ipc.publish('eevee-pm.request', message);
         ipc.subscribe(`${ident}.reply`, (data, info) => {
           data = JSON.parse(data);
           clog.debug('Reply message: ', data, info);
-          if (data.result === 'success' && data.messageID === messageID) handleSIGINT(ident, ipc);
+          if (data.result === 'success' && data.messageID === messageID) {
+            console.log(`Command: stop ${argv.module} completed successfully, exiting...`);
+            exit(ident);
+          } else if (data.result === 'fail' && data.messageID === messageID) {
+            var string = `"stop ${argv.module}" failed: ${data.err.exception} `;
+            string += `${data.err.errMessage ? `(${data.err.errMessage})` : ''}`;
+            string += `, exiting...`;
+            console.log(string);
+            exit(ident, 1);
+          }
         });
       });
     },
   })
   .help().argv;
-
-clog.debug('argv outside yargs, argv: ', args);
 
 // Create and lock a pid file at /tmp/eevee/proc/eevee-pm.pid
 lockPidFile(ident);

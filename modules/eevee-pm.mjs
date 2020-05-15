@@ -15,18 +15,16 @@ lockPidFile(ident);
 
 if (debug) {
   ipc.on('start', () => {
-    if (debug) clog.debug('IPC "connected"');
+    clog.debug('IPC "connected"');
     // Print every message we receive if debug is enabled
     ipc.subscribe(`${ident}.#`, (data, info) => {
-      clog.debug('Incoming IPC message: ', JSON.stringify(JSON.parse(data.toString()), null, 2), info);
+      clog.debug(`Incoming IPC message (topic: ${info.topic}): `, JSON.stringify(JSON.parse(data.toString()), null, 2));
     });
   });
 }
 
 // Things that need to be done once the ipc is "connected"
 ipc.on('start', () => {
-  if (debug) clog.debug('IPC "connected"');
-
   if (process.send) process.send('ready');
 
   ipc.subscribe('eevee-pm.admin.#', (data, info) => {
@@ -87,7 +85,9 @@ function start(request) {
       }
       var child = null;
       try {
-        child = child_process.fork(`./${request.target}.mjs`, {
+        var filename = request.target.replace('-', '/');
+        clog.debug(`Path: ./${filename}.mjs`);
+        child = child_process.fork(`./${filename}.mjs`, {
           detached: true,
           stdio: ['ignore', out, out, 'ipc'],
         });

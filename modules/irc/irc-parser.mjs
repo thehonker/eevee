@@ -1,13 +1,13 @@
 'use strict';
 
-// Process manager for eevee-bot
+// Irc-parser. Takes messages from irc-connector, parses & filters them, and passes them on to modules
 
-const ident = 'test1';
+const ident = 'irc-parser';
 const debug = true;
 
 import { default as clog } from 'ee-log';
 
-import { ipc, lockPidFile, handleSIGINT } from '../lib/common.mjs';
+import { ipc, lockPidFile, handleSIGINT, genMessageID } from '../lib/common.mjs';
 
 lockPidFile(ident);
 
@@ -25,11 +25,5 @@ ipc.on('start', () => {
 });
 
 process.on('SIGINT', () => {
-  clearInterval(foo);
   handleSIGINT(ident, ipc);
 });
-
-const foo = setInterval(() => {
-  clog.debug('sending ipc message');
-  ipc.publish('eevee-pm.info', { message: 'hello' });
-}, 500);

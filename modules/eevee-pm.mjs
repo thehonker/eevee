@@ -274,7 +274,7 @@ function isRunning(ident, cb) {
     }
     data = Number.parseInt(data.toString());
     if (!Number.isNaN(data)) {
-      if (debug) clog.debug(`Found module PID ${Number(data)}`);
+      if (debug) clog.debug(`Found module PID ${data}`);
       cb(null, Number(data));
       return;
     } else {
@@ -296,7 +296,7 @@ function isRunningSync(ident) {
   var data = fs.readFileSync(`/tmp/eevee/proc/${ident}.pid`, 'utf8');
   data = Number.parseInt(data.toString());
   if (!Number.isNaN(data)) {
-    if (debug) clog.debug(`Found module PID ${Number(data)}`);
+    if (debug) clog.debug(`Found module PID ${data}`);
     return Number(data);
   } else {
     const error = new Error('PID file format invalid');

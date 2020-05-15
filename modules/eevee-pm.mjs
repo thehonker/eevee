@@ -13,16 +13,19 @@ import { ipc, lockPidFile, handleSIGINT } from '../lib/common.mjs';
 // Create and lock a pid file at /tmp/eevee/proc/eevee-pm.pid
 lockPidFile(ident);
 
+if (debug) {
+  ipc.on('start', () => {
+    if (debug) clog.debug('IPC "connected"');
+    // Print every message we receive if debug is enabled
+    ipc.subscribe(`${ident}.#`, (data, info) => {
+      clog.debug('Incoming IPC message: ', JSON.stringify(JSON.parse(data.toString()), null, 2), info);
+    });
+  });
+}
+
 // Things that need to be done once the ipc is "connected"
 ipc.on('start', () => {
   if (debug) clog.debug('IPC "connected"');
-
-  // Print every message we receive if debug is enabled
-  if (debug) {
-    ipc.subscribe(`${ident}.#`, (data, info) => {
-      clog.debug('Incoming IPC message: ', data.toString(), info);
-    });
-  }
 
   if (process.send) process.send('ready');
 
@@ -44,6 +47,12 @@ ipc.on('start', () => {
       clog.debug('Restart request received: ', request, info);
       stop(request);
       start(request);
+    } else if (request.action === 'moduleStatus') {
+      clog.debug('moduleStatus request received: ', request, info);
+      moduleStatus(request);
+    } else if (request.action === 'status') {
+      clog.debug('status request received: ', request, info);
+      status(request);
     } else {
       clog.warn('Unknown request: ', request, info);
     }
@@ -160,8 +169,10 @@ function start(request) {
 
 function stop(request) {
   if (debug) clog.debug('Attempting module stop: ', request);
+  // Find out the pid of the module
   isRunning(request.target, (err, pid) => {
     if (err) {
+      // If we get an err, then the module isn't running
       clog.error(err);
       const reply = JSON.stringify({
         messageID: request.messageID,
@@ -171,9 +182,11 @@ function stop(request) {
         childPID: null,
         err: err,
       });
+      // Reply to whoever asked us
       ipc.publish(`${request.notify}.reply`, reply);
       return;
     } else if (typeof pid === 'number') {
+      // We got a (hopefully) valid PID, so let's kill it
       if (debug) clog.debug(`Found module PID ${pid}, sending SIGINT`);
       process.kill(pid, 'SIGINT');
       const reply = JSON.stringify({
@@ -187,6 +200,67 @@ function stop(request) {
       ipc.publish(`${request.notify}.reply`, reply);
       return;
     }
+  });
+}
+
+function moduleStatus(request) {
+  // Maybe in the future we'll make this give more info
+  isRunning(request.target, (err, pid) => {
+    const reply = JSON.stringify({
+      messageID: request.messageID,
+      command: 'status',
+      target: request.target,
+      result: 'success',
+      childPID: pid,
+      err: null,
+    });
+    ipc.publish(`${request.notify}.reply`, reply);
+  });
+}
+
+function status(request) {
+  fs.readdir('/tmp/eevee/proc', (err, files) => {
+    if (err) {
+      clog.error(err);
+      const reply = JSON.stringify({
+        messageID: request.messageID,
+        command: 'moduleStatus',
+        target: request.target,
+        result: 'fail',
+        childPID: null,
+        err: err,
+      });
+      ipc.publish(`${request.notify}.reply`, reply);
+    } else {
+      var runningModules = [];
+      files.forEach((file) => {
+        var moduleName = file.replace('.pid', '');
+        clog.debug('file: ', file);
+        var pid = isRunningSync(moduleName);
+        if (typeof pid === 'number') {
+          runningModules.push({
+            moduleName: moduleName,
+            pid: pid,
+          });
+        } else if (pid.code) {
+          runningModules.push({
+            moduleName: moduleName,
+            pid: pid.code,
+          });
+        }
+      });
+      clog.debug('running modules: ', runningModules);
+      const reply = JSON.stringify({
+        messageID: request.messageID,
+        command: 'status',
+        target: null,
+        result: 'success',
+        childPID: runningModules,
+        err: null,
+      });
+      ipc.publish(`${request.notify}.reply`, reply);
+    }
+    clog.debug('List of files in proc dir: ', files);
   });
 }
 
@@ -213,4 +287,23 @@ function isRunning(ident, cb) {
       return;
     }
   });
+}
+
+// I know, I know
+// This function is unsafe, only pass it idents you know have a pid file.
+function isRunningSync(ident) {
+  // eslint-disable-next-line security/detect-non-literal-fs-filename
+  var data = fs.readFileSync(`/tmp/eevee/proc/${ident}.pid`, 'utf8');
+  data = Number.parseInt(data.toString());
+  if (!Number.isNaN(data)) {
+    if (debug) clog.debug(`Found module PID ${Number(data)}`);
+    return Number(data);
+  } else {
+    const error = new Error('PID file format invalid');
+    error.msg = error.message;
+    error.code = 'E_PID_FILE_INVALID';
+    error.path = `/tmp/eevee/proc/${ident}.pid`;
+    clog.error(error);
+    return error;
+  }
 }

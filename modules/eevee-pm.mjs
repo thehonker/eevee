@@ -5,6 +5,13 @@
 const ident = 'eevee-pm';
 const debug = true;
 
+const validRequests = {
+  start: start,
+  stop: stop,
+  moduleStatus: moduleStatus,
+  status: status,
+};
+
 import { default as clog } from 'ee-log';
 import { default as child_process } from 'child_process';
 import { default as fs } from 'fs';
@@ -34,25 +41,13 @@ ipc.on('start', () => {
 
   ipc.subscribe('eevee-pm.request.#', (data, info) => {
     const request = JSON.parse(data);
-    clog.debug('Request received: ', request, info);
-    if (request.action === 'start') {
-      clog.debug('Start request received: ', request, info);
-      start(request);
-    } else if (request.action === 'stop') {
-      clog.debug('Stop request received: ', request, info);
-      stop(request);
-    } else if (request.action === 'restart') {
-      clog.debug('Restart request received: ', request, info);
-      stop(request);
-      start(request);
-    } else if (request.action === 'moduleStatus') {
-      clog.debug('moduleStatus request received: ', request, info);
-      moduleStatus(request);
-    } else if (request.action === 'status') {
-      clog.debug('status request received: ', request, info);
-      status(request);
-    } else {
-      clog.warn('Unknown request: ', request, info);
+    const action = request.action || info.topic.split('.')[2];
+    if (debug) clog.debug(request, action, info.topic.split('.'));
+    // eslint-disable-next-line security/detect-object-injection
+    if (typeof validRequests[action] === 'function') {
+      if (debug) clog.debug(`${action} request received:`, request, info);
+      // eslint-disable-next-line security/detect-object-injection
+      validRequests[action](request);
     }
   });
 });
@@ -67,6 +62,14 @@ function start(request) {
     // If we receive an error object, the module isn't running.
     if (err) {
       var out = null;
+      var module = null;
+      var instance = null;
+      if (request.target.includes('@')) {
+        module = request.target.split('@')[0];
+        instance = request.target.split('@')[1];
+      } else {
+        module = request.target;
+      }
       try {
         // Can we open the log file?
         // eslint-disable-next-line security/detect-non-literal-fs-filename
@@ -85,13 +88,14 @@ function start(request) {
       }
       var child = null;
       try {
-        var filename = request.target.replace('-', '/');
+        var filename = module.replace('-', '/');
         clog.debug(`Path: ./${filename}.mjs`);
-        child = child_process.fork(`./${filename}.mjs`, {
+        child = child_process.fork(`./${filename}.mjs`, instance ? ['--instance', instance] : null, {
           detached: true,
           stdio: ['ignore', out, out, 'ipc'],
         });
       } catch (err) {
+        clog.error(err);
         clog.error(`Failed to start module ${request.target}: E_FORK_FAILED`);
         const error = new Error('Unable to fork child');
         error.msg = error.message;
@@ -290,7 +294,7 @@ function isRunning(ident, cb) {
 }
 
 // I know, I know
-// This function is unsafe, only pass it idents you know have a pid file.
+// This function is unsafe, only pass it things you know have a pid file.
 function isRunningSync(ident) {
   // eslint-disable-next-line security/detect-non-literal-fs-filename
   var data = fs.readFileSync(`/tmp/eevee/proc/${ident}.pid`, 'utf8');

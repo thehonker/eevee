@@ -1,19 +1,29 @@
 'use strict';
 
-// Process manager for eevee-bot
+// Instance id test
 
-const ident = 'irc-test1';
 const debug = true;
 
 import { default as clog } from 'ee-log';
 
-import { ipc, lockPidFile, handleSIGINT } from '../../lib/common.mjs';
+import { ipc, lockPidFile, handleSIGINT, genMessageID } from '../../lib/common.mjs';
 
-lockPidFile(ident);
+var ident = 'irc-test1';
+var instance = null;
+var fullIdent = ident;
+
+clog.debug(process.argv);
+
+if (process.argv[2] === '--instance') {
+  instance = process.argv[3];
+  fullIdent = ident + '@' + instance;
+}
+
+lockPidFile(fullIdent);
 
 // Print every message we receive if debug is enabled
 if (debug) {
-  ipc.subscribe(`${ident}.#`, (data, info) => {
+  ipc.subscribe(`${fullIdent}.#`, (data, info) => {
     clog.debug('incoming IPC message: ', info, data.toString());
   });
 }
@@ -25,12 +35,16 @@ ipc.on('start', () => {
   if (debug) clog.debug('IPC "connected"');
   if (process.send) process.send('ready');
   foo = setInterval(() => {
+    const messageID = genMessageID();
     clog.debug('sending ipc message');
     ipc.publish(
       'eevee-pm.info',
       JSON.stringify({
         message: 'hello',
+        messageID: messageID,
         from: ident,
+        instance: instance,
+        fullIdent: fullIdent,
         currentTime: new Date().toUTCString(),
       }),
     );
@@ -39,5 +53,5 @@ ipc.on('start', () => {
 
 process.on('SIGINT', () => {
   clearInterval(foo);
-  handleSIGINT(ident, ipc);
+  handleSIGINT(fullIdent, ipc);
 });

@@ -75,15 +75,16 @@ function start(argv) {
   clog.debug('argv: ', argv);
   ipc.on('start', () => {
     if (debug) clog.debug('IPC "connected"');
+
     const messageID = genMessageID();
     clog.debug('Sending start request');
     const message = JSON.stringify({
       messageID: messageID,
       target: argv.module,
       notify: ident,
-      action: 'start',
+      //action: 'start',
     });
-    ipc.publish('eevee-pm.request', message);
+    ipc.publish('eevee-pm.request.start', message);
     ipc.subscribe(`${ident}.reply`, (data, info) => {
       data = JSON.parse(data);
       clog.debug('Reply message: ', data, info);
@@ -117,9 +118,9 @@ function stop(argv) {
       messageID: messageID,
       target: argv.module,
       notify: ident,
-      action: 'stop',
+      //action: 'stop',
     });
-    ipc.publish('eevee-pm.request', message);
+    ipc.publish('eevee-pm.request.stop', message);
     ipc.subscribe(`${ident}.reply`, (data, info) => {
       data = JSON.parse(data);
       clog.debug('Reply message: ', data, info);
@@ -154,17 +155,18 @@ function status(argv) {
         messageID: messageID,
         target: argv.module,
         notify: ident,
-        action: 'moduleStatus',
+        //action: 'moduleStatus',
       });
+      ipc.publish('eevee-pm.request.moduleStatus', message);
     } else {
       message = JSON.stringify({
         messageID: messageID,
         target: null,
         notify: ident,
-        action: 'status',
+        //action: 'status',
       });
+      ipc.publish('eevee-pm.request.status', message);
     }
-    ipc.publish('eevee-pm.request', message);
     ipc.subscribe(`${ident}.reply`, (data, info) => {
       data = JSON.parse(data);
       clog.debug('Reply message: ', data, info);

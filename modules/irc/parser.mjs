@@ -1,13 +1,13 @@
 'use strict';
 
-// Irc-manager. Manages irc-connector and irc-parser processes by talking to eevee-pm
+// Irc-parser. Takes messages from irc-connector, parses & filters them, and passes them on to modules
 
-const ident = 'irc-manager';
+const ident = 'irc-parser';
 const debug = true;
 
 import { default as clog } from 'ee-log';
 
-import { ipc, lockPidFile, handleSIGINT, genMessageID } from '../lib/common.mjs';
+import { ipc, lockPidFile, handleSIGINT, genMessageID } from '../../lib/common.mjs';
 
 lockPidFile(ident);
 

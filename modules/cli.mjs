@@ -55,8 +55,6 @@ if (debug) clog.debug(argv);
 // Create and lock a pid file at /tmp/eevee/proc/eevee-pm.pid
 lockPidFile(ident);
 
-// Things that need to be done once the ipc is "connected"
-
 if (debug) {
   ipc.on('start', () => {
     if (debug) clog.debug('IPC "connected"');
@@ -82,7 +80,7 @@ function start(argv) {
       messageID: messageID,
       target: argv.module,
       notify: ident,
-      //action: 'start',
+      action: 'start', // Not strictly required as we're going to publish to eevee-pm.request.start
     });
     ipc.publish('eevee-pm.request.start', message);
     ipc.subscribe(`${ident}.reply`, (data, info) => {
@@ -118,7 +116,7 @@ function stop(argv) {
       messageID: messageID,
       target: argv.module,
       notify: ident,
-      //action: 'stop',
+      action: 'stop',
     });
     ipc.publish('eevee-pm.request.stop', message);
     ipc.subscribe(`${ident}.reply`, (data, info) => {
@@ -155,7 +153,7 @@ function status(argv) {
         messageID: messageID,
         target: argv.module,
         notify: ident,
-        //action: 'moduleStatus',
+        action: 'moduleStatus',
       });
       ipc.publish('eevee-pm.request.moduleStatus', message);
     } else {
@@ -163,7 +161,7 @@ function status(argv) {
         messageID: messageID,
         target: null,
         notify: ident,
-        //action: 'status',
+        action: 'status',
       });
       ipc.publish('eevee-pm.request.status', message);
     }

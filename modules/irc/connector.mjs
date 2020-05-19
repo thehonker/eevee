@@ -29,13 +29,6 @@ if (process.argv[2] === '--instance') {
 
 lockPidFile(moduleFullIdent);
 
-console.log(`Current directory: ${process.cwd()}`);
-
-console.log(__filename);
-console.log(__dirname);
-
-console.log('PATH: ', `${__dirname}/../../etc/irc/${moduleInstance}.hjson`);
-
 // eslint-disable-next-line security/detect-non-literal-fs-filename
 var config = fs.readFileSync(`${__dirname}/../../etc/irc/${moduleInstance}.hjson`, 'utf8');
 config = hjson.parse(config);

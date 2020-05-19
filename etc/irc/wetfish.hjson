@@ -1,0 +1,24 @@
+{
+  errorAction: 'die',
+  client: {
+    nick: 'eevee',
+    username: 'IAmABot',
+    gecos: 'IAmABot',
+    encoding: 'utf8',
+    version: '0.0.420',
+    host: 'irc.wetfish.net',
+    port: 6697,
+    ssl: true,
+    enable_chghost: false,
+    enable_echomessage: false,
+    auto_reconnect: true,
+    auto_reconnect_wait: 4000,
+    auto_reconnect_max_retries: 3,
+    ping_interval: 30,
+    ping_timeout: 120,
+  },
+  channels: [
+    { name: '#botspam', key: null },
+    { name: '#eevee', key: null },
+  ],
+}

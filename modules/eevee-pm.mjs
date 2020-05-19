@@ -33,11 +33,6 @@ if (debug) {
 ipc.on('start', () => {
   if (process.send) process.send('ready');
 
-  ipc.subscribe('eevee-pm.admin.#', (data, info) => {
-    data = JSON.parse(data);
-    clog.debug('Admin message: ', data, info);
-  });
-
   ipc.subscribe('eevee-pm.request.#', (data, info) => {
     const request = JSON.parse(data);
     const action = request.action || info.topic.split('.')[2];

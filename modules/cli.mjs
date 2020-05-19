@@ -4,10 +4,11 @@
 // Usage: eevee [init, start, stop, restart, config, status, console, dump]
 
 const ident = 'cli';
-const debug = true;
+const debug = false;
 
 import { default as clog } from 'ee-log';
 import { default as yargs } from 'yargs';
+import { default as AsciiTable } from 'ascii-table';
 import { ipc, lockPidFile, exit, handleSIGINT, genMessageID } from '../lib/common.mjs';
 
 // Create and lock a pid file at /tmp/eevee/proc/eevee-pm.pid
@@ -15,7 +16,7 @@ lockPidFile(ident);
 
 if (debug) {
   ipc.on('start', () => {
-    if (debug) clog.debug('IPC "connected"');
+    clog.debug('IPC "connected"');
     // Print every message we receive if debug is enabled
     ipc.subscribe(`${ident}.#`, (data, info) => {
       clog.debug('Incoming IPC message: ', JSON.stringify(JSON.parse(data.toString()), null, 2), info);
@@ -91,26 +92,23 @@ ipc.on('start', () => {
     .strict()
     .help().argv;
 
-  if (debug) clog.debug(argv);
+  if (debug) clog.debug('argv as parsed by yargs:', argv);
 });
 
 function start(argv, cb) {
-  clog.debug('argv: ', argv);
-
-  if (debug) clog.debug('IPC "connected"');
-
+  if (debug) clog.debug('Function start() argv: ', argv);
   const messageID = genMessageID();
-  clog.debug('Sending start request');
   const message = JSON.stringify({
     messageID: messageID,
     target: argv.module,
     notify: ident,
     action: 'start', // Not strictly required as we're going to publish to eevee-pm.request.start
   });
+  if (debug) clog.debug('Sending start request:', message);
   ipc.publish('eevee-pm.request.start', message);
   ipc.subscribe(`${ident}.reply`, (data, info) => {
     data = JSON.parse(data);
-    clog.debug('Reply message: ', data, info);
+    if (debug) clog.debug('Reply message: ', data, info);
     if (data.result === 'success' && data.messageID === messageID) {
       // eslint-disable-next-line prettier/prettier
         console.log(`Command: "start ${argv.module}" completed successfully (pid is ${data.childPID})`,);
@@ -133,20 +131,19 @@ function start(argv, cb) {
 }
 
 function stop(argv, cb) {
-  clog.debug('argv: ', argv);
-  if (debug) clog.debug('IPC "connected"');
+  if (debug) clog.debug('Function stop() argv: ', argv);
   const messageID = genMessageID();
-  clog.debug('Sending stop request');
   const message = JSON.stringify({
     messageID: messageID,
     target: argv.module,
     notify: ident,
     action: 'stop',
   });
+  if (debug) clog.debug('Sending stop request:', message);
   ipc.publish('eevee-pm.request.stop', message);
   ipc.subscribe(`${ident}.reply`, (data, info) => {
     data = JSON.parse(data);
-    clog.debug('Reply message: ', data, info);
+    if (debug) clog.debug('Reply message: ', data, info);
     if (data.result === 'success' && data.messageID === messageID) {
       // eslint-disable-next-line prettier/prettier
         console.log(`Command: stop ${argv.module} completed successfully (pid was ${data.childPID})`);
@@ -168,10 +165,8 @@ function stop(argv, cb) {
 }
 
 function status(argv, cb) {
-  clog.debug('argv: ', argv);
-  if (debug) clog.debug('IPC "connected"');
+  if (debug) clog.debug('Function status() argv: ', argv);
   const messageID = genMessageID();
-  clog.debug('Sending status request');
   var message = null;
   if (argv.module) {
     message = JSON.stringify({
@@ -180,6 +175,7 @@ function status(argv, cb) {
       notify: ident,
       action: 'moduleStatus',
     });
+    if (debug) clog.debug('Sending status request:', message);
     ipc.publish('eevee-pm.request.moduleStatus', message);
   } else {
     message = JSON.stringify({
@@ -192,24 +188,30 @@ function status(argv, cb) {
   }
   ipc.subscribe(`${ident}.reply`, (data, info) => {
     data = JSON.parse(data);
-    clog.debug('Reply message: ', data, info);
+    if (debug) clog.debug('Reply message: ', data, info);
     if (data.result === 'success' && data.messageID === messageID) {
       if (data.command === 'moduleStatus') {
         // eslint-disable-next-line prettier/prettier
           console.log(`Command: "status ${argv.module}" completed successfully (pid is ${data.childPID})`);
         exit(ident);
       } else if (data.command === 'status') {
-        var string1 = `Command: "status" completed successfully. Running modules: \n`;
-        string1 += JSON.stringify(data.childPID, null, 2);
-        console.log(string1);
+        console.log('Command: "status" completed successfully. Running modules:');
+
+        const outputTable = new AsciiTable();
+        outputTable.setHeading('Module Name', 'pid');
+        data.childPID.forEach((child) => {
+          outputTable.addRow(child.moduleName, child.pid);
+        });
+        console.log(outputTable.toString());
+
         if (cb) cb(0);
         return 0;
       }
     } else if (data.result === 'fail' && data.messageID === messageID) {
-      var string2 = null;
-      string2 = `Command "status ${argv.module}" failed: Unknown error:\n`;
-      string2 += JSON.stringify(data.err, null, 2);
-      console.log(string2);
+      var string = null;
+      string = `Command "status ${argv.module}" failed: Unknown error:\n`;
+      string += JSON.stringify(data.err, null, 2);
+      console.log(string);
       if (cb) cb(1);
       return 1;
     }

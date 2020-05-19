@@ -4,10 +4,11 @@
   "description": "microservices chatbot",
   "main": "eevee.js",
   "dependencies": {
+    "ascii-table": "^0.0.9",
     "ee-log": "^3.0.9",
     "fs-ext": "^2.0.0",
     "hjson": "^3.2.1",
-    "irc-framework": "^4.6.0",
+    "irc-framework": "^4.8.1",
     "lockfile": "^1.0.4",
     "qlobber-fsq": "^12.0.4",
     "yargs": "^15.3.1"

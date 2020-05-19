@@ -44,7 +44,7 @@ ipc.on('start', () => {
     if (debug) clog.debug(request, action, info.topic.split('.'));
     // eslint-disable-next-line security/detect-object-injection
     if (typeof validRequests[action] === 'function') {
-      if (debug) clog.debug(`${action} request received:`, request, info);
+      if (debug) clog.debug(`${action} request received:`, request);
       // eslint-disable-next-line security/detect-object-injection
       validRequests[action](request, (result) => {
         ipc.publish(`${request.notify}.reply`, result);

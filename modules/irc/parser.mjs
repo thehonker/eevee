@@ -6,11 +6,8 @@ const ident = 'irc-parser';
 const debug = true;
 
 import { default as clog } from 'ee-log';
-import { default as fs } from 'fs';
-import { default as hjson } from 'hjson';
-import path from 'path';
 
-import { ipc, lockPidFile, handleSIGINT, genMessageID, __dirname } from '../../lib/common.mjs';
+import { ipc, lockPidFile, handleSIGINT, genMessageID, getConfig } from '../../lib/common.mjs';
 
 var moduleIdent = 'irc-connector';
 var moduleInstance = null;
@@ -25,10 +22,7 @@ if (process.argv[2] === '--instance') {
 
 lockPidFile(moduleFullIdent);
 
-const configPath = path.normalize(`${__dirname}/../../etc/irc/${moduleInstance}.hjson`);
-// eslint-disable-next-line security/detect-non-literal-fs-filename
-var config = fs.readFileSync(configPath, 'utf8');
-config = hjson.parse(config);
+const config = getConfig(moduleFullIdent);
 
 if (debug) clog.debug('Configuration: ', config);
 

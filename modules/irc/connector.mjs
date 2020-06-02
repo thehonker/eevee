@@ -5,18 +5,15 @@
 const debug = true;
 
 import { default as clog } from 'ee-log';
-import { default as hjson } from 'hjson';
 import { default as IRC } from 'irc-framework';
-import { default as fs } from 'fs';
-import path from 'path';
 
-import { ipc, lockPidFile, handleSIGINT, genMessageID, __dirname } from '../../lib/common.mjs';
+import { ipc, lockPidFile, handleSIGINT, genMessageID, getConfig } from '../../lib/common.mjs';
 
 var moduleIdent = 'irc-connector';
 var moduleInstance = null;
 var moduleFullIdent = moduleIdent;
 
-clog.debug(process.argv);
+if (debug) clog.debug('process.argv:', process.argv);
 
 if (process.argv[2] === '--instance') {
   moduleInstance = process.argv[3];
@@ -25,10 +22,7 @@ if (process.argv[2] === '--instance') {
 
 lockPidFile(moduleFullIdent);
 
-const configPath = path.normalize(`${__dirname}/../../etc/irc/${moduleInstance}.hjson`);
-// eslint-disable-next-line security/detect-non-literal-fs-filename
-var config = fs.readFileSync(configPath, 'utf8');
-config = hjson.parse(config);
+const config = getConfig(moduleFullIdent);
 
 if (debug) clog.debug('Configuration: ', config);
 

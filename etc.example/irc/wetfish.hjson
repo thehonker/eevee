@@ -21,8 +21,21 @@
     { name: '#botspam', key: null },
     { name: '#eevee', key: null },
   ],
-  nickservScript: {
-    to: 'nickserv',
-    string: 'identify <token>'
-  }
+  postConnectActions: [
+    {
+      action: 'pm',
+      to: 'nickserv',
+      string: 'identify <token>',
+    },
+    /*
+    {
+      action: 'mode', 
+      mode: '-x',
+    },
+    {
+      action: 'raw',
+      raw: 'raw_irc_string',
+    }
+    */
+  ]
 }

@@ -21,7 +21,7 @@ if (debug) {
 // Things that need to be done once the ipc is "connected"
 ipc.on('start', () => {
   if (debug) clog.debug('IPC "connected"');
-  ipc.subscribe('test2.recv', (data, info) => {
+  ipc.subscribe('test2.recv', (data) => {
     console.log(`Message from ${data.from}: ${data.message} (Message ID: ${data.messageID})`);
     console.log(`Message was sent at ${data.currentTime} and received at ${new Date().toUTCString()}`);
   });

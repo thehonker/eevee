@@ -21,4 +21,8 @@
     { name: '#botspam', key: null },
     { name: '#eevee', key: null },
   ],
+  nickservScript: {
+    to: 'nickserv',
+    string: 'identify <token>'
+  }
 }

@@ -38,11 +38,11 @@ ipc.on('start', () => {
     const messageID = genMessageID();
     clog.debug('sending ipc message');
     ipc.publish(
-      'eevee-pm.info',
+      'test2.recv',
       JSON.stringify({
         message: 'hello',
         messageID: messageID,
-        from: ident,
+        from: fullIdent,
         instance: instance,
         fullIdent: fullIdent,
         currentTime: new Date().toUTCString(),
@@ -53,5 +53,5 @@ ipc.on('start', () => {
 
 process.on('SIGINT', () => {
   clearInterval(foo);
-  handleSIGINT(fullIdent, ipc);
+  handleSIGINT(fullIdent, ipc, debug);
 });

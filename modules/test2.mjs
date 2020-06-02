@@ -3,7 +3,7 @@
 // Process manager for eevee-bot
 
 const ident = 'test2';
-const debug = true;
+const debug = false;
 
 import { default as clog } from 'ee-log';
 
@@ -21,21 +21,12 @@ if (debug) {
 // Things that need to be done once the ipc is "connected"
 ipc.on('start', () => {
   if (debug) clog.debug('IPC "connected"');
-  clog.debug('Sending stop request');
-  const message = JSON.stringify({
-    target: 'test1',
-    notify: 'test2',
-    action: 'stop',
-    force: 'false',
-  });
-  ipc.publish('eevee-pm.request', message);
-  ipc.subscribe('test2.reply', (data, info) => {
-    data = JSON.parse(data);
-    clog.debug('Reply message: ', data, info);
-    if (data.result === 'success') handleSIGINT(ident, ipc);
+  ipc.subscribe('test2.recv', (data, info) => {
+    console.log(`Message from ${data.from}: ${data.message} (Message ID: ${data.messageID})`);
+    console.log(`Message was sent at ${data.currentTime} and received at ${new Date().toUTCString()}`);
   });
 });
 
 process.on('SIGINT', () => {
-  handleSIGINT(ident, ipc);
+  handleSIGINT(ident, ipc, debug);
 });

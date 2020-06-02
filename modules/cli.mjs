@@ -25,7 +25,7 @@ if (debug) {
 }
 
 process.on('SIGINT', () => {
-  handleSIGINT(ident, ipc);
+  handleSIGINT(ident, ipc, debug);
 });
 
 ipc.on('start', () => {

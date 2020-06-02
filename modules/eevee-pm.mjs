@@ -49,5 +49,5 @@ ipc.on('start', () => {
 });
 
 process.on('SIGINT', () => {
-  handleSIGINT(ident, ipc);
+  handleSIGINT(ident, ipc, debug);
 });

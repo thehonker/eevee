@@ -1,20 +1,16 @@
 # Logs
+log/
 logs
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# Runtime data
-pids
-*.pid
-*.pid.lock
-.pm2
-pm2
-proc
-
 # Dependency directories
 node_modules/
 
 # Yarn Integrity file
 .yarn-integrity
+
+# Configuration files
+etc/

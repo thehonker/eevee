@@ -9,12 +9,8 @@ import { default as hjson } from 'hjson';
 import { default as IRC } from 'irc-framework';
 import { default as fs } from 'fs';
 import path from 'path';
-import { fileURLToPath } from 'url';
 
-import { ipc, lockPidFile, handleSIGINT, genMessageID } from '../../lib/common.mjs';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+import { ipc, lockPidFile, handleSIGINT, genMessageID, __dirname } from '../../lib/common.mjs';
 
 var moduleIdent = 'irc-connector';
 var moduleInstance = null;
@@ -29,11 +25,12 @@ if (process.argv[2] === '--instance') {
 
 lockPidFile(moduleFullIdent);
 
+const configPath = path.normalize(`${__dirname}/../../etc/irc/${moduleInstance}.hjson`);
 // eslint-disable-next-line security/detect-non-literal-fs-filename
-var config = fs.readFileSync(`${__dirname}/../../etc/irc/${moduleInstance}.hjson`, 'utf8');
+var config = fs.readFileSync(configPath, 'utf8');
 config = hjson.parse(config);
 
-if (debug) clog.debug(config);
+if (debug) clog.debug('Configuration: ', config);
 
 const client = new IRC.Client(config.client);
 
@@ -53,7 +50,7 @@ ipc.on('start', () => {
 process.on('SIGINT', () => {
   client.quit('SIGINT received');
   client.removeAllListeners();
-  handleSIGINT(moduleFullIdent, ipc);
+  handleSIGINT(moduleFullIdent, ipc, debug);
 });
 
 if (debug) clog.debug('Attempting to connect to IRC server');
@@ -61,8 +58,9 @@ client.connect(config.client);
 
 client.on('registered', () => {
   if (debug) clog.debug('Client connected.');
-  // client.join('#wetfish');
-  // client.say('#wetfish', 'I AM ALIVE');
+
+  // Join our initial channels
+  // Execute login script
 });
 
 client.on('message', (message) => {

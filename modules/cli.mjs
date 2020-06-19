@@ -200,7 +200,11 @@ function status(argv, cb) {
         const outputTable = new AsciiTable();
         outputTable.setHeading('Module Name', 'pid');
         data.childPID.forEach((child) => {
-          outputTable.addRow(child.moduleName, child.pid);
+          if (child.pid === process.pid) {
+            outputTable.addRow(`${child.moduleName} (this instance)`, child.pid);
+          } else {
+            outputTable.addRow(child.moduleName, child.pid);
+          }
         });
         console.log(outputTable.toString());
 

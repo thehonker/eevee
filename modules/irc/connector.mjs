@@ -65,6 +65,8 @@ client.on('error', (message) => {
   clog.error('Client error:', message);
 });
 
+/* Disable this for now
 client.on('raw', (message) => {
   // if (debug) clog.debug('raw message:', message);
 });
+*/

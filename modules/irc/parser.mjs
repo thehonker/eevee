@@ -45,11 +45,11 @@ if (debug) {
 ipc.on('start', () => {
   if (debug) clog.debug('IPC "connected"');
   if (process.send) process.send('ready');
-  ipc.subscribe('irc-parser.wetfish.incomingMessage', (data) => {
-    data = JSON.parse(data);
-    if (debug) clog.debug('Incoming IRC Message:', data);
-    if (data.message.charAt(0) === prefix) {
-      if (debug) clog.debug(`Message matched prefix ${prefix}`, data.message);
+  ipc.subscribe(`irc-parser.${moduleInstance}.incomingMessage`, (data, info) => {
+    const msg = JSON.parse(data);
+    if (debug) clog.debug('Incoming IRC Message:', msg);
+    if (msg.message.charAt(0) === prefix) {
+      if (debug) clog.debug(`Message matched prefix ${prefix}`, msg.message);
     }
   });
 });

@@ -50,18 +50,11 @@ ipc.on('start', () => {
   if (debug) clog.debug('Attempting to connect to IRC server');
   client.connect(config.client);
 
-  client.on('message', (data) => {
-    let msg = {};
-    msg.type = data.type;
-    msg.nick = data.nick;
-    msg.ident = data.ident;
-    msg.hostname = data.hostname;
-    msg.target = data.target;
-    msg.text = data.message;
+  client.on('message', (msg) => {
     msg.time = new Date();
     msg.id = genMessageID();
     if (debug) clog.debug('Client message:', msg);
-    ipc.publish('irc-parser.wetfish.incomingMessage', msg);
+    ipc.publish(`irc-parser.${moduleInstance}.incomingMessage`, msg);
   });
 });
 

@@ -38,7 +38,7 @@ ipc.on('start', () => {
     const messageID = genMessageID();
     clog.debug('sending ipc message');
     ipc.publish(
-      'test2.recv',
+      'irc-parser@wetfish.foo',
       JSON.stringify({
         message: 'hello',
         messageID: messageID,

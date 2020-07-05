@@ -8,7 +8,7 @@ const debug = true;
 import { default as clog } from 'ee-log';
 
 import { ipc, lockPidFile, handleSIGINT } from '../lib/common.mjs';
-import { start, stop, moduleStatus, status } from '../lib/eevee-pm.mjs';
+import { start, stop, moduleStatus, status } from '../lib/eeveepm.mjs';
 
 const validRequests = {
   start: start,

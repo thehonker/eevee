@@ -1,5 +1,6 @@
 'use strict';
 
+// Depreciated?
 // Irc-parser. Takes messages from irc-connector, parses & filters them, and passes them on to modules
 
 const debug = true;
@@ -45,15 +46,17 @@ if (debug) {
 ipc.on('start', () => {
   if (debug) clog.debug('IPC "connected"');
   if (process.send) process.send('ready');
-  ipc.subscribe(`irc-parser.${moduleInstance}.incomingMessage`, (data, info) => {
-    const msg = JSON.parse(data);
-    if (debug) clog.debug('Incoming IRC Message:', msg);
-    if (msg.message.charAt(0) === prefix) {
-      if (debug) clog.debug(`Message matched prefix ${prefix}`, msg.message);
-    }
-  });
 });
 
 process.on('SIGINT', () => {
   handleSIGINT(moduleFullIdent, ipc, debug);
+});
+
+if (debug) clog.debug(`Subscribing to 'irc-parser.${moduleInstance}.incomingMessage'`);
+ipc.subscribe(`irc-parser.${moduleInstance}.incomingMessage`, (data, info) => {
+  const msg = JSON.parse(data);
+  if (debug) clog.debug('Incoming IRC Message:', msg);
+  if (msg.message.charAt(0) === prefix) {
+    if (debug) clog.debug(`Message matched prefix ${prefix}`, msg.message);
+  }
 });

@@ -7,7 +7,7 @@ const debug = true;
 import { default as clog } from 'ee-log';
 import { default as IRC } from 'irc-framework';
 
-import { ipc, lockPidFile, handleSIGINT, genMessageID, getConfig } from '../lib/common.mjs';
+import { ipc, lockPidFile, handleSIGINT, genMessageID, getConfig } from '../../lib/common.mjs';
 
 var moduleIdent = 'irc-connector';
 var moduleInstance = null;
@@ -75,16 +75,16 @@ client.on('raw', (message) => {
 */
 
 client.on('message', (data) => {
-  var type = null;
+  var msgType = null;
   if (data.target.slice(0, 1) == '#') {
-    type = 'chanmsg';
+    msgType = 'chanmsg';
   } else {
-    type = 'privmsg';
+    msgType = 'privmsg';
   }
   const msg = {
     time: new Date(),
     id: genMessageID(),
-    type: type,
+    type: msgType,
     text: data.message,
     connector: moduleFullIdent,
     platform: 'irc',
@@ -98,28 +98,6 @@ client.on('message', (data) => {
   if (debug) clog.debug('Client message:', msg);
   ipc.publish(`incomingMessage.irc`, JSON.stringify(msg));
 });
-
-/* Example:
-message = {
-  text: ['~echo', 'foo', 'bar', 'baz'],
-  formattedText: [ // Let's pretend that Weazzy sent 'foo bar baz' in these colors
-    ['~echo ', {plain: true,}],
-    ['foo ', {fgColor: 'red',}],
-    ['bar ', {fgColor: 'blue', bgColor: 'yellow'}],
-    ['baz ', {style: 'bold', fgColor: 'green'}],
-  ],
-  from: {
-    module:     'irc.wetfish',  // Our module ident
-    platform:   'irc',          // Matrix, Discord, etc. Allows modules to apply platform-specific goodies
-    server:     'irc.wetfish',  // Server ident as defined in config - doesn't necessarily match module ident
-    channel:    '#botspam',     // # for channels, @ for pm's
-    nick:       'Weazzy',       // User's display name
-    ident:      'Weazzy@lu.dicro.us', // Full ident
-  },
-  raw: {}, // Raw event as delivered by the connector library
-}
-ipc.emit('rpf:incoming', message);
-*/
 
 ipc.subscribe(`irc.${moduleInstance}.outgoingMessage`, (data, info) => {
   const msg = JSON.parse(data);

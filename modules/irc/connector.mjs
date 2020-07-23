@@ -49,6 +49,16 @@ ipc.on('start', () => {
 
   if (debug) clog.debug('Attempting to connect to IRC server');
   client.connect(config.client);
+
+  // Listen for outgoing message commands
+  const subscription = `irc-connector.${moduleInstance}.outgoingMessage`;
+
+  clog.debug(`Subscribing to: ${subscription}`);
+  ipc.subscribe(subscription, (data) => {
+    const msg = JSON.parse(data);
+    if (debug) clog.debug('Received outgoingMessage:', msg);
+    client.say(msg.target, msg.text);
+  });
 });
 
 process.on('SIGINT', () => {
@@ -80,13 +90,4 @@ client.on('raw', (message) => {
 client.on('message', (data) => {
   //if (debug) clog.debug('Client message:', data);
   ipc.publish(`irc-parser.${moduleInstance}.incomingMessage`, JSON.stringify(data));
-});
-
-// Listen for outgoing message commands
-clog.debug(`Subscribing to irc-connector.${moduleInstance}.outgoingMessage`);
-const subscription = `irc-connector.${moduleInstance}.outgoingMessage`;
-ipc.subscribe(subscription, (data) => {
-  const msg = JSON.parse(data);
-  if (debug) clog.debug('Received outgoingMessage:', msg);
-  client.say(msg.target, msg.text);
 });

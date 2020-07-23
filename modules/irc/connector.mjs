@@ -1,6 +1,6 @@
 'use strict';
 
-// Irc. Talks to irc servers and passes messages over to irc-parser
+// Irc. Talks to irc servers and passes messages over to irc-router
 
 const debug = true;
 
@@ -68,38 +68,20 @@ client.on('error', (message) => {
   clog.error('Client error:', message);
 });
 
-/* Disable this for now
+/* This makes a /lot/ of noise
 client.on('raw', (message) => {
   // if (debug) clog.debug('raw message:', message);
 });
 */
 
+// When the server sends us a normal message event
 client.on('message', (data) => {
-  var msgType = null;
-  if (data.target.slice(0, 1) == '#') {
-    msgType = 'chanmsg';
-  } else {
-    msgType = 'privmsg';
-  }
-  const msg = {
-    time: new Date(),
-    id: genMessageID(),
-    type: msgType,
-    text: data.message,
-    connector: moduleFullIdent,
-    platform: 'irc',
-    server: config.host,
-    channel: data.target,
-    nick: data.nick,
-    ident: `${data.ident}@${data.hostname}`,
-    raw: data,
-  };
-
-  if (debug) clog.debug('Client message:', msg);
-  ipc.publish(`incomingMessage.irc`, JSON.stringify(msg));
+  if (debug) clog.debug('Client message:', data);
+  ipc.publish(`irc-router.${moduleInstance}.incomingMessage`, JSON.stringify(data));
 });
 
-ipc.subscribe(`irc.${moduleInstance}.outgoingMessage`, (data, info) => {
+// Listen for outgoing message commands
+ipc.subscribe(`irc-connector.${moduleInstance}.outgoingMessage`, (data, info) => {
   const msg = JSON.parse(data);
   if (debug) clog.debug('Received outgoingMessage:', msg);
   client.say(msg.target, msg.text);

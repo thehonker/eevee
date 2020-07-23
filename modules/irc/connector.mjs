@@ -78,12 +78,14 @@ client.on('raw', (message) => {
 
 // When the server sends us a normal message event
 client.on('message', (data) => {
-  if (debug) clog.debug('Client message:', data);
-  ipc.publish(`irc-router.${moduleInstance}.incomingMessage`, JSON.stringify(data));
+  //if (debug) clog.debug('Client message:', data);
+  ipc.publish(`irc-parser.${moduleInstance}.incomingMessage`, JSON.stringify(data));
 });
 
 // Listen for outgoing message commands
-ipc.subscribe(`irc-connector.${moduleInstance}.outgoingMessage`, (data, info) => {
+clog.debug(`Subscribing to irc-connector.${moduleInstance}.outgoingMessage`);
+const subscription = `irc-connector.${moduleInstance}.outgoingMessage`;
+ipc.subscribe(subscription, (data) => {
   const msg = JSON.parse(data);
   if (debug) clog.debug('Received outgoingMessage:', msg);
   client.say(msg.target, msg.text);

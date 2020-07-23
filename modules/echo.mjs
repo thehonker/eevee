@@ -27,3 +27,16 @@ ipc.on('start', () => {
 process.on('SIGINT', () => {
   handleSIGINT(ident, ipc);
 });
+
+ipc.subscribe(`${ident}.request`, (data) => {
+  const request = JSON.parse(data);
+  if (debug) clog.debug('Echo request received:', request);
+  const reply = {
+    target: request.channel,
+    text: request.args,
+  };
+  // D irc-connector.wetfish.outgoingMessage
+  // D irc-connector.wetfish.outgoingMessage
+  if (debug) clog.debug(`Sending reply to: ${request.replyTo}.outgoingMessage`, reply);
+  ipc.publish(`${request.replyTo}.outgoingMessage`, reply);
+});

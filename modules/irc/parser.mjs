@@ -10,9 +10,15 @@ import { default as clog } from 'ee-log';
 
 import { ipc, lockPidFile, handleSIGINT, genMessageID, getConfig } from '../../lib/common.mjs';
 
-var moduleIdent = 'parser';
+var moduleIdent = 'irc-parser';
 var moduleInstance = null;
 var moduleFullIdent = moduleIdent;
+
+if (process.argv[2] === '--instance' && process.argv[3]) {
+  moduleInstance = process.argv[3];
+  moduleFullIdent = moduleIdent + '@' + moduleInstance;
+  if (debug) clog.debug(`My moduleFullIdent is: ${moduleFullIdent}`);
+}
 
 var config = getConfig(moduleFullIdent);
 
@@ -23,12 +29,6 @@ const isAllowedCommand = (command) => {
 };
 
 if (debug) clog.debug('process.argv:', process.argv);
-
-if (process.argv[2] === '--instance' && process.argv[3]) {
-  moduleInstance = process.argv[3];
-  moduleFullIdent = moduleIdent + '@' + moduleInstance;
-  if (debug) clog.debug(`My moduleFullIdent is: ${moduleFullIdent}`);
-}
 
 lockPidFile(moduleFullIdent);
 
@@ -52,10 +52,10 @@ process.on('SIGINT', () => {
   handleSIGINT(moduleFullIdent, ipc, debug);
 });
 
-if (debug) clog.debug(`Subscribing to 'irc-router.${moduleInstance}.incomingMessage'`);
-ipc.subscribe(`irc-router.${moduleInstance}.incomingMessage`, (data, info) => {
+if (debug) clog.debug(`Subscribing to 'irc-parser.${moduleInstance}.incomingMessage'`);
+ipc.subscribe(`irc-parser.${moduleInstance}.incomingMessage`, (data, info) => {
   data = JSON.parse(data);
-  if (debug) clog.debug('Incoming IRC Message:', data, msg);
+  if (debug) clog.debug('Incoming IRC Message:', data);
   var msgType = null;
   if (data.target.slice(0, 1) == '#') {
     msgType = 'chanmsg';
@@ -73,20 +73,23 @@ ipc.subscribe(`irc-router.${moduleInstance}.incomingMessage`, (data, info) => {
     nick: data.nick,
     ident: `${data.ident}@${data.hostname}`,
     raw: data,
+    replyTo: `irc-connector.${moduleInstance}`,
   };
+  if (debug) clog.debug('Parsed message:', msg);
 
   const prefix = msg.text.slice(0, config.commandPrefix.length);
   if (prefix === config.commandPrefix) {
     if (debug) clog.debug(`Message matched prefix ${config.commandPrefix}:`, msg.text);
 
-    msg.command = msg.text.slice(1).split(' ')[0];
+    msg.command = msg.text.slice(config.commandPrefix.length).split(' ')[0];
     msg.args = msg.text
       .split(' ')
       .slice(1)
       .join(' ');
 
     if (isAllowedCommand(msg.command)) {
-      if (debug) clog.debug('Received command:', msg.command + msg.args);
+      if (debug) clog.debug('Received command:', msg.command + ' ' + msg.args);
+      ipc.publish(`${msg.command}.request`, JSON.stringify(msg));
     }
   }
 });

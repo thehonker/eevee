@@ -7,7 +7,7 @@ const debug = true;
 import { default as clog } from 'ee-log';
 import { default as IRC } from 'irc-framework';
 
-import { ipc, lockPidFile, handleSIGINT, genMessageID, getConfig } from '../../lib/common.mjs';
+import { ipc, lockPidFile, handleSIGINT, getConfig } from '../../lib/common.mjs';
 
 var moduleIdent = 'irc-connector';
 var moduleInstance = null;
@@ -66,6 +66,8 @@ client.on('registered', () => {
 
 client.on('error', (message) => {
   clog.error('Client error:', message);
+  // Parse the error and do something with it
+  // We might need to spin our own ircd to test this
 });
 
 /* This makes a /lot/ of noise

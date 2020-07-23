@@ -6,17 +6,15 @@
 
 const debug = true;
 
-const config = {
-  commandPrefix: '<',
-};
-
 import { default as clog } from 'ee-log';
 
-import { ipc, lockPidFile, handleSIGINT, arrayObjectExists, genMessageID } from '../lib/common.mjs';
+import { ipc, lockPidFile, handleSIGINT, genMessageID, getConfig } from '../../lib/common.mjs';
 
-var moduleIdent = 'rpf';
+var moduleIdent = 'parser';
 var moduleInstance = null;
 var moduleFullIdent = moduleIdent;
+
+var config = getConfig(moduleFullIdent);
 
 // Later this will check a pass/block list
 // For now it just allows everything .'/)

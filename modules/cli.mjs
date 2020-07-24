@@ -9,7 +9,8 @@ const debug = false;
 import { default as clog } from 'ee-log';
 import { default as yargs } from 'yargs';
 import { default as AsciiTable } from 'ascii-table';
-import { ipc, lockPidFile, exit, handleSIGINT, genMessageID } from '../lib/common.mjs';
+import { ipc, lockPidFile, exit, handleSIGINT } from '../lib/common.mjs';
+import { start as moduleStart, stop as moduleStop, moduleStatus, status as botStatus } from '../lib/eeveepm.mjs';
 
 // Create and lock a pid file at /tmp/eevee/proc/eevee-pm.pid
 lockPidFile(ident);
@@ -97,31 +98,24 @@ ipc.on('start', () => {
 
 function start(argv, cb) {
   if (debug) clog.debug('Function start() argv: ', argv);
-  const messageID = genMessageID();
-  const message = JSON.stringify({
-    messageID: messageID,
+  const request = {
     target: argv.module,
-    notify: ident,
     action: 'start', // Not strictly required as we're going to publish to eevee-pm.request.start
-  });
-  if (debug) clog.debug('Sending start request:', message);
-  ipc.publish('eevee-pm.request.start', message);
-  ipc.subscribe(`${ident}.reply`, (data, info) => {
-    data = JSON.parse(data);
-    if (debug) clog.debug('Reply message: ', data, info);
-    if (data.result === 'success' && data.messageID === messageID) {
+  };
+  moduleStart(request, (result) => {
+    if (result.result === 'success') {
       // eslint-disable-next-line prettier/prettier
-        console.log(`Command: "start ${argv.module}" completed successfully (pid is ${data.childPID})`,);
+      console.log(`Command: "start ${argv.module}" completed successfully (pid is ${result.childPID})`,);
       if (cb) cb(0);
       return 0;
-    } else if (data.result === 'fail' && data.messageID === messageID) {
-      var string = null;
-      if (data.err.code === 'E_ALREADY_RUNNING') {
-        string = `Command "start ${argv.module}" failed: ${data.err.code} (at ${data.err.path}).\n`;
-        string += `Module already running? (pid ${data.childPID})`;
+    } else if (result.result === 'fail') {
+      let string = null;
+      if (result.err.code === 'E_ALREADY_RUNNING') {
+        string = `Command "start ${argv.module}" failed: ${result.err.code} (at ${result.err.path}).\n`;
+        string += `Module already running? (pid ${result.childPID})`;
       } else {
         string = `Command "start ${argv.module}" failed: Unknown error:\n`;
-        string += JSON.stringify(data.err, null, 2);
+        string += JSON.stringify(result.err, null, 2);
       }
       console.log(string);
       if (cb) cb(1);
@@ -132,30 +126,23 @@ function start(argv, cb) {
 
 function stop(argv, cb) {
   if (debug) clog.debug('Function stop() argv: ', argv);
-  const messageID = genMessageID();
-  const message = JSON.stringify({
-    messageID: messageID,
+  const request = {
     target: argv.module,
-    notify: ident,
     action: 'stop',
-  });
-  if (debug) clog.debug('Sending stop request:', message);
-  ipc.publish('eevee-pm.request.stop', message);
-  ipc.subscribe(`${ident}.reply`, (data, info) => {
-    data = JSON.parse(data);
-    if (debug) clog.debug('Reply message: ', data, info);
-    if (data.result === 'success' && data.messageID === messageID) {
+  };
+  moduleStop(request, (result) => {
+    if (result.result === 'success') {
       // eslint-disable-next-line prettier/prettier
-        console.log(`Command: stop ${argv.module} completed successfully (pid was ${data.childPID})`);
+    console.log(`Command: stop ${argv.module} completed successfully (pid was ${result.childPID})`);
       if (cb) cb(0);
       return 0;
-    } else if (data.result === 'fail' && data.messageID === messageID) {
+    } else if (result.result === 'fail') {
       var string = null;
-      if (data.err.code === 'ENOENT') {
-        string = `Command "stop ${argv.module}" failed: ${data.err.code} at ${data.err.path}. Module not running?`;
+      if (result.err.code === 'ENOENT') {
+        string = `Command "stop ${argv.module}" failed: ${result.err.code} at ${result.err.path}. Module not running?`;
       } else {
         string = `Command "stop ${argv.module}" failed: Unknown error:\n`;
-        string += JSON.stringify(data.err, null, 2);
+        string += JSON.stringify(result.err, null, 2);
       }
       console.log(string);
       if (cb) cb(1);
@@ -166,58 +153,45 @@ function stop(argv, cb) {
 
 function status(argv, cb) {
   if (debug) clog.debug('Function status() argv: ', argv);
-  const messageID = genMessageID();
-  var message = null;
+  var request = null;
   if (argv.module) {
-    message = JSON.stringify({
-      messageID: messageID,
+    request = {
       target: argv.module,
-      notify: ident,
       action: 'moduleStatus',
-    });
-    if (debug) clog.debug('Sending status request:', message);
-    ipc.publish('eevee-pm.request.moduleStatus', message);
-  } else {
-    message = JSON.stringify({
-      messageID: messageID,
-      target: null,
-      notify: ident,
-      action: 'status',
-    });
-    ipc.publish('eevee-pm.request.status', message);
-  }
-  ipc.subscribe(`${ident}.reply`, (data, info) => {
-    data = JSON.parse(data);
-    if (debug) clog.debug('Reply message: ', data, info);
-    if (data.result === 'success' && data.messageID === messageID) {
-      if (data.command === 'moduleStatus') {
-        // eslint-disable-next-line prettier/prettier
-          console.log(`Command: "status ${argv.module}" completed successfully (pid is ${data.childPID})`);
-        exit(ident);
-      } else if (data.command === 'status') {
-        console.log('Command: "status" completed successfully. Running modules:');
-
-        const outputTable = new AsciiTable();
-        outputTable.setHeading('Module Name', 'pid');
-        data.childPID.forEach((child) => {
-          if (child.pid === process.pid) {
-            outputTable.addRow(`${child.moduleName} (this instance)`, child.pid);
-          } else {
-            outputTable.addRow(child.moduleName, child.pid);
-          }
-        });
-        console.log(outputTable.toString());
-
+    };
+    moduleStatus(request, (result) => {
+      if (result.result === 'success') {
+        console.log(`Command: "status ${argv.module}" completed successfully (pid is ${result.childPID})`);
         if (cb) cb(0);
         return 0;
+      } else if (result.result === 'fail') {
+        var string = null;
+        string = `Command "status ${argv.module}" failed: Unknown error:\n`;
+        string += JSON.stringify(result.err, null, 2);
+        console.log(string);
+        if (cb) cb(1);
+        return 1;
       }
-    } else if (data.result === 'fail' && data.messageID === messageID) {
-      var string = null;
-      string = `Command "status ${argv.module}" failed: Unknown error:\n`;
-      string += JSON.stringify(data.err, null, 2);
-      console.log(string);
-      if (cb) cb(1);
-      return 1;
-    }
-  });
+    });
+  } else {
+    request = {
+      target: null,
+      action: 'status',
+    };
+    botStatus(request, (result) => {
+      console.log('Command: "status" completed successfully. Running modules:');
+      const outputTable = new AsciiTable();
+      outputTable.setHeading('Module Name', 'pid');
+      result.childPID.forEach((child) => {
+        if (child.pid === process.pid) {
+          outputTable.addRow(`${child.moduleName} (this instance)`, child.pid);
+        } else {
+          outputTable.addRow(child.moduleName, child.pid);
+        }
+      });
+      console.log(outputTable.toString());
+      if (cb) cb(0);
+      return 0;
+    });
+  }
 }

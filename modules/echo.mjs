@@ -38,5 +38,5 @@ ipc.subscribe(`${ident}.request`, (data) => {
   // D irc-connector.wetfish.outgoingMessage
   // D irc-connector.wetfish.outgoingMessage
   if (debug) clog.debug(`Sending reply to: ${request.replyTo}.outgoingMessage`, reply);
-  ipc.publish(`${request.replyTo}.outgoingMessage`, reply);
+  ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
 });

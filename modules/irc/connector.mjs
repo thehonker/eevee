@@ -36,7 +36,7 @@ const client = new IRC.Client(config.client);
 
 // Print every message we receive if debug is enabled
 if (debug) {
-  clog.debug(`Subscribing to ${moduleFullIdent}.#`);
+  clog.debug(`[Debug]: Subscribing to ${moduleFullIdent}.#`);
   ipc.subscribe(`${moduleFullIdent}.#`, (data, info) => {
     clog.debug('incoming IPC message: ', info, data.toString());
   });
@@ -49,16 +49,6 @@ ipc.on('start', () => {
 
   if (debug) clog.debug('Attempting to connect to IRC server');
   client.connect(config.client);
-
-  // Listen for outgoing message commands
-  const subscription = `irc-connector.${moduleInstance}.outgoingMessage`;
-
-  clog.debug(`Subscribing to: ${subscription}`);
-  ipc.subscribe(subscription, (data) => {
-    const msg = JSON.parse(data);
-    if (debug) clog.debug('Received outgoingMessage:', msg);
-    client.say(msg.target, msg.text);
-  });
 });
 
 process.on('SIGINT', () => {
@@ -74,12 +64,6 @@ client.on('registered', () => {
   // Execute login script
 });
 
-client.on('error', (message) => {
-  clog.error('Client error:', message);
-  // Parse the error and do something with it
-  // We might need to spin our own ircd to test this
-});
-
 /* This makes a /lot/ of noise
 client.on('raw', (message) => {
   // if (debug) clog.debug('raw message:', message);
@@ -88,6 +72,15 @@ client.on('raw', (message) => {
 
 // When the server sends us a normal message event
 client.on('message', (data) => {
-  //if (debug) clog.debug('Client message:', data);
+  // This is very noisy so we'll turn it off for now if (debug) clog.debug('Client message:', data);
   ipc.publish(`irc-parser.${moduleInstance}.incomingMessage`, JSON.stringify(data));
+});
+
+// Listen for outgoing message commands
+const subscription = `irc-connector.${moduleInstance}.outgoingMessage`;
+clog.debug(`Subscribing to: ${subscription}`);
+ipc.subscribe(subscription, (data, info) => {
+  const msg = JSON.parse(data);
+  if (debug) clog.debug('Received outgoingMessage:', msg);
+  client.say(msg.target, msg.text);
 });

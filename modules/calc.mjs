@@ -40,21 +40,31 @@ ipc.subscribe('c.request', (data) => {
 function calc(data) {
   const request = JSON.parse(data);
   if (debug) clog.debug('Calc request received:', request);
-  var reply = null;
-  if (request.args.indexOf('!') + request.args.indexOf('factorial') != -2) {
+  try {
+    var reply = null;
+    if (request.args.indexOf('!') + request.args.indexOf('factorial') != -2) {
+      if (request.platform === 'irc') {
+        reply = {
+          target: request.channel,
+          text: `Error: Factorials disabled`,
+        };
+      }
+      ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
+    } else {
+      const result = mathjs.evaluate(request.args);
+      reply = {
+        target: request.channel,
+        text: result.toString(),
+      };
+      ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
+    }
+  } catch (err) {
     if (request.platform === 'irc') {
       reply = {
         target: request.channel,
-        text: `[${ircColor.red('error')}] Factorials disabled`,
+        text: `Error: ${err.message}`,
       };
+      ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
     }
-    ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
-  } else {
-    const result = mathjs.evaluate(request.args);
-    reply = {
-      target: request.channel,
-      text: result.toString(),
-    };
-    ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
   }
 }

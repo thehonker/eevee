@@ -82,9 +82,11 @@ ipc.on('start', () => {
       },
       handler: (argv) => {
         stop(argv, (stopCode) => {
-          start(argv, (startCode) => {
-            exit(ident, stopCode + startCode);
-          });
+          setTimeout(() => {
+            start(argv, (startCode) => {
+              exit(ident, stopCode + startCode);
+            });
+          }, 500);
         });
       },
     })

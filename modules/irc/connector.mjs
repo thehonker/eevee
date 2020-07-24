@@ -79,7 +79,7 @@ client.on('message', (data) => {
 // Listen for outgoing message commands
 const subscription = `irc-connector.${moduleInstance}.outgoingMessage`;
 clog.debug(`Subscribing to: ${subscription}`);
-ipc.subscribe(subscription, (data, info) => {
+ipc.subscribe(subscription, (data) => {
   const msg = JSON.parse(data);
   if (debug) clog.debug('Received outgoingMessage:', msg);
   client.say(msg.target, msg.text);

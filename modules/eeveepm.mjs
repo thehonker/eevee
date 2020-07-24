@@ -43,6 +43,7 @@ ipc.on('start', () => {
       if (debug) clog.debug(`${action} request received:`, request);
       // eslint-disable-next-line security/detect-object-injection
       validRequests[action](request, (result) => {
+        result = JSON.stringify(result);
         ipc.publish(`${request.notify}.reply`, result);
       });
     }

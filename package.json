@@ -8,8 +8,10 @@
     "ee-log": "^3.0.9",
     "fs-ext": "^2.0.0",
     "hjson": "^3.2.1",
+    "irc-colors": "^1.5.0",
     "irc-framework": "^4.8.1",
     "lockfile": "^1.0.4",
+    "mathjs": "^7.1.0",
     "qlobber-fsq": "^12.0.4",
     "yargs": "^15.3.1"
   },

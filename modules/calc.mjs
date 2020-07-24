@@ -7,8 +7,8 @@ const debug = true;
 
 import { default as clog } from 'ee-log';
 import { default as ircColor } from 'irc-colors';
-import { default as mathjs } from 'mathjs';
 import { ipc, lockPidFile, handleSIGINT } from '../lib/common.mjs';
+import { default as mathjs } from 'mathjs';
 
 lockPidFile(ident);
 
@@ -30,10 +30,17 @@ process.on('SIGINT', () => {
 });
 
 ipc.subscribe('calc.request', (data) => {
+  calc(data);
+});
+
+ipc.subscribe('c.request', (data) => {
+  calc(data);
+});
+
+function calc(data) {
   const request = JSON.parse(data);
   if (debug) clog.debug('Calc request received:', request);
   var reply = null;
-  var parser = mathjs.parser;
   if (request.args.indexOf('!') + request.args.indexOf('factorial') != -2) {
     if (request.platform === 'irc') {
       reply = {
@@ -43,18 +50,11 @@ ipc.subscribe('calc.request', (data) => {
     }
     ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
   } else {
-    const result = mathjs
-      .format(parser.eval(request.args), {
-        precision: 14,
-      })
-      .replace('undefined', ircColor.red('Error parsing input'));
+    const result = mathjs.evaluate(request.args);
     reply = {
       target: request.channel,
-      text: result,
+      text: result.toString(),
     };
     ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
   }
-
-  if (debug) clog.debug(`Sending reply to: ${request.replyTo}.outgoingMessage`, reply);
-  ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
-});
+}

@@ -1,9 +1,11 @@
 {
   errorAction: 'die',
+  owner: 'Weazzy@lu.dicro.us',
+  commandPrefix: '<',
   client: {
     nick: 'eevee',
-    username: 'IAmABot',
-    gecos: 'IAmABot',
+    username: 'iAmABot',
+    gecos: 'iAmABot',
     encoding: 'utf8',
     version: '0.0.420',
     host: 'irc.wetfish.net',
@@ -13,7 +15,10 @@
     enable_echomessage: false,
     auto_reconnect: true,
     auto_reconnect_wait: 4000,
-    auto_reconnect_max_retries: 3,
+    auto_reconnect_max_retries: 10,
+    auto_rejoin: true,
+    auto_rejoin_wait: 4000,
+    auto_rejoin_max_retries: 4,
     ping_interval: 30,
     ping_timeout: 120,
   },
@@ -24,12 +29,18 @@
   postConnectActions: [
     {
       action: 'pm',
-      to: 'nickserv',
-      string: 'identify <token>',
+      target: 'nickserv',
+      message: 'identify <token>',
+    },
+    {
+      action: 'pm',
+      target: 'nickserv',
+      message: 'host lu.dicro.us',
     },
     /*
     {
       action: 'mode', 
+      target: 'eevee',
       mode: '-x',
     },
     {
@@ -37,5 +48,5 @@
       raw: 'raw_irc_string',
     }
     */
-  ]
+  ],
 }

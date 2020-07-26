@@ -1,3 +1,5 @@
 {
+  debug: true,
   errorAction: 'die',
+  procPath: '/tmp/eevee',
 }

@@ -53,18 +53,43 @@ ipc.on('start', () => {
 
 client.on('registered', () => {
   if (debug) clog.debug('Client connected.');
-  client.join('#botspam');
   // Join our initial channels
+  config.channels.forEach((channel) => {
+    client.join(channel.name, channel.key);
+  });
+
   // Execute login script
+  setTimeout(() => {
+    var postConnectPromise = Promise.resolve();
+    config.postConnectActions.forEach((action) => {
+      postConnectPromise = postConnectPromise.then(() => {
+        if (action.action === 'pm') {
+          client.say(action.target, action.message);
+        }
+        if (action.action === 'usermode') {
+          client.raw(`MODE ${action.target} :${action.mode}`);
+        }
+        return new Promise((resolve) => {
+          setTimeout(resolve, 1000);
+        });
+      });
+    });
+  }, 2000);
 });
 
 // This makes a /lot/ of noise
+/* So we'll turn it off for now
 client.on('raw', (message) => {
   if (debug) clog.debug('raw message:', message);
 });
+*/
 
 // When the server sends us a normal message event
 client.on('message', (data) => {
+  // This makes a /lot/ of noise
+  /* So we'll turn it off for now
+  if (debug) clog.debug('Client message:', data);
+  */
   ipc.publish(`irc-parser.${moduleInstance}.incomingMessage`, JSON.stringify(data));
 });
 
@@ -101,7 +126,7 @@ ipc.subscribe(`irc-connector.${moduleInstance}.setTopic`, (data) => {
 });
 
 // Every 5 seconds check to see if we're still connected and reconnect if necessary
-setInterval(() => {
+const reconnectCheck = setInterval(() => {
   if (!client.connected) {
     clog.error('Client disconnected, reconnecting');
     client.connect(config.client);
@@ -112,5 +137,6 @@ setInterval(() => {
 process.on('SIGINT', () => {
   client.quit('SIGINT received');
   client.removeAllListeners();
+  clearInterval(reconnectCheck);
   handleSIGINT(moduleFullIdent, ipc, debug);
 });

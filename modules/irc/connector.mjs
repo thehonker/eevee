@@ -29,6 +29,14 @@ if (process.argv[2] === '--instance' && process.argv[3]) {
 lockPidFile(moduleFullIdent);
 
 const config = getConfig(moduleFullIdent);
+// Add channel list to post-connect actions
+config.channels.forEach((channel) => {
+  config.postConnectActions.push({
+    action: 'join',
+    channel: channel.name,
+    key: channel.key,
+  });
+});
 
 if (debug) clog.debug('Configuration: ', config);
 
@@ -53,21 +61,24 @@ ipc.on('start', () => {
 
 client.on('registered', () => {
   if (debug) clog.debug('Client connected.');
-  // Join our initial channels
-  config.channels.forEach((channel) => {
-    client.join(channel.name, channel.key);
-  });
-
   // Execute login script
   setTimeout(() => {
     var postConnectPromise = Promise.resolve();
     config.postConnectActions.forEach((action) => {
       postConnectPromise = postConnectPromise.then(() => {
+        if (debug) clog.debug('Running post-connect action', action);
         if (action.action === 'pm') {
           client.say(action.target, action.message);
         }
         if (action.action === 'usermode') {
           client.raw(`MODE ${action.target} :${action.mode}`);
+        }
+        if (action.action === 'join') {
+          if (debug) clog.debug('Joining channel', action);
+          client.join(action.channel, action.key);
+          // We can join channels async, so we return immediately
+          // At least... that's how I think this works
+          return;
         }
         return new Promise((resolve) => {
           setTimeout(resolve, 1000);
@@ -92,6 +103,9 @@ client.on('message', (data) => {
   */
   ipc.publish(`irc-parser.${moduleInstance}.incomingMessage`, JSON.stringify(data));
 });
+
+// There's other, more compact ways of doing this
+// But I like how verbose this is
 
 // Listen for outgoing messages
 clog.debug(`Subscribing to: irc-connector.${moduleInstance}.outgoingMessage`);

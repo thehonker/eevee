@@ -5,6 +5,7 @@
   "main": "eevee.js",
   "dependencies": {
     "ascii-table": "^0.0.9",
+    "better-sqlite3": "^7.1.0",
     "ee-log": "^3.0.9",
     "fs-ext": "^2.0.0",
     "hjson": "^3.2.1",

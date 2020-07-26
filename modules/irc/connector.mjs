@@ -58,15 +58,13 @@ client.on('registered', () => {
   // Execute login script
 });
 
-/* This makes a /lot/ of noise
+// This makes a /lot/ of noise
 client.on('raw', (message) => {
-  // if (debug) clog.debug('raw message:', message);
+  if (debug) clog.debug('raw message:', message);
 });
-*/
 
 // When the server sends us a normal message event
 client.on('message', (data) => {
-  // This is very noisy so we'll turn it off for now if (debug) clog.debug('Client message:', data);
   ipc.publish(`irc-parser.${moduleInstance}.incomingMessage`, JSON.stringify(data));
 });
 

@@ -135,7 +135,7 @@ function stop(argv, cb) {
   moduleStop(request, (result) => {
     if (result.result === 'success') {
       // eslint-disable-next-line prettier/prettier
-    console.log(`Command: stop ${argv.module} completed successfully (pid was ${result.childPID})`);
+    console.log(`Command: "stop  ${argv.module}" completed successfully (pid was ${result.childPID})`);
       if (cb) cb(0);
       return 0;
     } else if (result.result === 'fail') {

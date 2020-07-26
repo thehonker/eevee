@@ -51,12 +51,6 @@ ipc.on('start', () => {
   client.connect(config.client);
 });
 
-process.on('SIGINT', () => {
-  client.quit('SIGINT received');
-  client.removeAllListeners();
-  handleSIGINT(moduleFullIdent, ipc, debug);
-});
-
 client.on('registered', () => {
   if (debug) clog.debug('Client connected.');
   client.join('#botspam');
@@ -76,11 +70,49 @@ client.on('message', (data) => {
   ipc.publish(`irc-parser.${moduleInstance}.incomingMessage`, JSON.stringify(data));
 });
 
-// Listen for outgoing message commands
-const subscription = `irc-connector.${moduleInstance}.outgoingMessage`;
-clog.debug(`Subscribing to: ${subscription}`);
-ipc.subscribe(subscription, (data) => {
+// Listen for outgoing messages
+clog.debug(`Subscribing to: irc-connector.${moduleInstance}.outgoingMessage`);
+ipc.subscribe(`irc-connector.${moduleInstance}.outgoingMessage`, (data) => {
   const msg = JSON.parse(data);
   if (debug) clog.debug('Received outgoingMessage:', msg);
   client.say(msg.target, msg.text);
+});
+
+// Listen for outgoing actions
+clog.debug(`Subscribing to: irc-connector.${moduleInstance}.outgoingAction`);
+ipc.subscribe(`irc-connector.${moduleInstance}.outgoingAction`, (data) => {
+  const msg = JSON.parse(data);
+  if (debug) clog.debug('Received outgoingAction:', msg);
+  client.action(msg.target, msg.text);
+});
+
+// Listen for whois requests
+clog.debug(`Subscribing to: irc-connector.${moduleInstance}.whoisRequest`);
+ipc.subscribe(`irc-connector.${moduleInstance}.whoisRequest`, (data) => {
+  const msg = JSON.parse(data);
+  if (debug) clog.debug('Received whoisRequest:', msg);
+  client.whois(msg.target);
+});
+
+// Listen for setTopic actions
+clog.debug(`Subscribing to: irc-connector.${moduleInstance}.setTopic`);
+ipc.subscribe(`irc-connector.${moduleInstance}.setTopic`, (data) => {
+  const msg = JSON.parse(data);
+  if (debug) clog.debug('Received setTopic:', msg);
+  client.setTopic(msg.target, msg.text);
+});
+
+// Every 5 seconds check to see if we're still connected and reconnect if necessary
+setInterval(() => {
+  if (!client.connected) {
+    clog.error('Client disconnected, reconnecting');
+    client.connect(config.client);
+  }
+}, 5000);
+
+// Handle SIGINT
+process.on('SIGINT', () => {
+  client.quit('SIGINT received');
+  client.removeAllListeners();
+  handleSIGINT(moduleFullIdent, ipc, debug);
 });

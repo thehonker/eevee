@@ -46,7 +46,7 @@ function calc(data) {
       if (request.platform === 'irc') {
         reply = {
           target: request.channel,
-          text: `Error: Factorials disabled`,
+          text: `${ircColor.red('Error:')} Factorials disabled`,
         };
       }
       ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
@@ -62,7 +62,7 @@ function calc(data) {
     if (request.platform === 'irc') {
       reply = {
         target: request.channel,
-        text: `Error: ${err.message}`,
+        text: `${ircColor.red('Error:')} ${err.message}`,
       };
       ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
     }

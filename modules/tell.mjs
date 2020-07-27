@@ -90,21 +90,6 @@ process.on('SIGINT', () => {
   handleSIGINT(moduleFullIdent, ipc);
 });
 
-/* Turn this off
-const manualTell = {
-  id: genMessageID(),
-  dateSent: new Date().toISOString(),
-  fromConnector: 'irc-connector@wetfish',
-  fromChannel: '#eevee',
-  fromUser: 'Weazzy@lu.dicro.us',
-  toUser: 'foo',
-  message: 'bar baz fizz buzz',
-  pm: 0,
-  delivered: null,
-};
-addTell.run(manualTell);
-*/
-
 // Handle incoming tell's
 ipc.subscribe('tell.request', (data) => {
   const request = JSON.parse(data);
@@ -130,9 +115,23 @@ ipc.subscribe('tell.request', (data) => {
     delivered: null,
   };
 
-  addTell.run(newTellData);
-
-  var replyText = `Message to ${toUser} saved! (ID: ${data.id})`;
+  var replyText = null;
+  try {
+    addTell.run(newTellData);
+  } catch (err) {
+    replyText = `Saving message ${data.id} failed! ${err.message}`;
+    if (request.platform === 'irc') {
+      replyText = ircColor.red(`Saving message ${data.id} failed! ${err.message}`);
+    }
+    const reply = {
+      target: request.channel,
+      text: replyText,
+    };
+    if (debug) clog.debug('Sending fail message', reply);
+    ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
+    return;
+  }
+  replyText = `Message to ${toUser} saved! (ID: ${data.id})`;
   if (request.platform === 'irc') {
     replyText = ircColor.green(`Message to ${toUser} saved! (ID: ${request.id})`);
   }
@@ -145,7 +144,7 @@ ipc.subscribe('tell.request', (data) => {
 });
 
 // Listen for when people say things
-ipc.subscribe('incomingMessageBroadcast.#', (data) => {
+ipc.subscribe('broadcast.incomingMessage.#', (data) => {
   data = JSON.parse(data);
   if (debug) clog.debug(`Checking if user ${data.nick} has any tells`);
   const tells = findTellByUser.all({ toUser: data.nick });
@@ -153,9 +152,11 @@ ipc.subscribe('incomingMessageBroadcast.#', (data) => {
     if (debug) clog.debug(`Found tells for user ${data.nick}`, tells);
     tells.forEach((tell) => {
       if (tell.delivered === null) {
-        var replyText = `${data.nick}: ${ircColor.green(tell.fromUser)} at ${ircColor.blue(tell.dateSent)}: ${tell.message}`;
+        var replyText = `${data.nick}: ${ircColor.green(tell.fromUser)} at ${ircColor.blue(
+          readableTime(tell.dateSent),
+        )}: ${tell.message}`;
         if (tell.platform === 'irc') {
-          replyText = `${data.nick}: tell from ${tell.fromUser} at ${tell.dateSent}: ${tell.message}`;
+          replyText = `${data.nick}: tell from ${tell.fromUser} ${readableTime(tell.dateSent)}: ${tell.message}`;
         }
         let reply = {
           target: tell.fromChannel,
@@ -170,3 +171,33 @@ ipc.subscribe('incomingMessageBroadcast.#', (data) => {
     });
   }
 });
+
+const readableTime = function(date) {
+  var time = Date.now() - Date.parse(date);
+  var days = Math.floor(time / 86400000);
+  var hours = Math.floor(time / 3600000) - days * 24;
+  var minutes = Math.floor(time / 60000) - hours * 60 - days * 1440;
+  var readable = '';
+  if (time < 60000) {
+    readable = 'less than a minute';
+  } else {
+    //Fuck yeah nested ternary operators. Unreadable as hell
+    days = days == 0 ? '' : days == 1 ? days + ' day' : days + ' days';
+    hours = hours == 0 ? '' : hours == 1 ? hours + ' hour' : hours + ' hours';
+    minutes = minutes == 0 ? '' : minutes == 1 ? minutes + ' minute' : minutes + ' minutes';
+
+    if (days != '') {
+      days +=
+        hours != '' && minutes != ''
+          ? ', '
+          : (hours == '' && minutes != '') || (hours != '' && minutes == '')
+          ? ' and '
+          : '';
+    }
+    if (hours != '' && minutes != '') {
+      hours += ' and ';
+    }
+    readable = days + hours + minutes;
+  }
+  return readable + ' ago';
+};

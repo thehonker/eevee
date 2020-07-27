@@ -29,7 +29,7 @@ if (moduleInstance) {
 
 var createTableString = `
   CREATE TABLE IF NOT EXISTS '${tableName}' (
-    'key' integer PRIMARY KEY AUTOINCREMENT,
+    'index' integer PRIMARY KEY AUTOINCREMENT,
     'id' varchar(255),
     'dateSent' timestamp,
     'fromConnector' varchar(255),
@@ -56,8 +56,7 @@ if (debug) clog.debug(createTableResult.changes);
 
 const addTell = db.prepare(
   `INSERT INTO tells (id, dateSent, fromConnector, fromChannel, fromUser, toUser, message, pm, delivered)
-   VALUES (@id, @dateSent, @fromConnector, @fromChannel, @fromUser, @toUser, @message, @pm, @delivered)
-   `,
+   VALUES (@id, @dateSent, @fromConnector, @fromChannel, @fromUser, @toUser, @message, @pm, @delivered)`,
 );
 
 /* Turn this off
@@ -86,7 +85,7 @@ setTimeout(() => {
 
 // Print every message we receive if debug is enabled
 if (debug) {
-  ipc.subscribe(`${ident}.#`, (data, info) => {
+  ipc.subscribe(`${moduleFullIdent}.#`, (data, info) => {
     clog.debug('incoming IPC message: ', info, data.toString());
   });
 }
@@ -99,7 +98,7 @@ ipc.on('start', () => {
 
 process.on('SIGINT', () => {
   db.close();
-  handleSIGINT(ident, ipc);
+  handleSIGINT(moduleFullIdent, ipc);
 });
 
 // Check / Create DB

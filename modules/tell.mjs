@@ -1,12 +1,16 @@
 'use strict';
 
 // Tell module. Fancy text-based answering machine.
-const debug = true;
 
 import { default as clog } from 'ee-log';
 import { default as ircColor } from 'irc-colors';
-import { ipc, lockPidFile, handleSIGINT, getConfig, genMessageID } from '../lib/common.mjs';
+import { ipc, lockPidFile, handleSIGINT, getConfig, getDirName } from '../lib/common.mjs';
 import { default as sqlite3 } from 'better-sqlite3';
+
+const debug = true;
+var db = null;
+
+const __dirname = getDirName();
 
 var moduleIdent = 'tell';
 var moduleInstance = null;
@@ -22,66 +26,51 @@ lockPidFile(moduleFullIdent);
 const config = getConfig(moduleFullIdent);
 if (debug) clog.debug(config);
 
+// Check / Create DB
 var tableName = 'tell';
 if (moduleInstance) {
   tableName = `tell-${moduleInstance}`;
 }
+try {
+  var createTableString = `
+    CREATE TABLE IF NOT EXISTS '${tableName}' (
+      'index' integer PRIMARY KEY AUTOINCREMENT,
+      'id' varchar(255),
+      'dateSent' timestamp,
+      'fromConnector' varchar(255),
+      'fromChannel' varchar(255),
+      'fromIdent' varchar(255),
+      'fromUser' varchar(255),
+      'toUser' varchar(255),
+      'platform' varchar(255),
+      'message' text,
+      'pm' boolean,
+      'delivered' timestamp
+    );
+  `;
 
-var createTableString = `
-  CREATE TABLE IF NOT EXISTS '${tableName}' (
-    'index' integer PRIMARY KEY AUTOINCREMENT,
-    'id' varchar(255),
-    'dateSent' timestamp,
-    'fromConnector' varchar(255),
-    'fromChannel' varchar(255),
-    'fromUser' varchar(255),
-    'toUser' varchar(255),
-    'platform' varchar(255),
-    'message' text,
-    'pm' boolean,
-    'delivered' timestamp
-  );
-`;
+  db = new sqlite3(`${__dirname}/../db/${config.dbFilename}`, {
+    readonly: config.dbParameters.readonly,
+    fileMustExist: config.dbParameters.fileMustExist,
+    timeout: config.dbParameters.timeout,
+    verbose: console.log,
+  });
 
-const db = new sqlite3(`../db/${config.dbFilename}`, {
-  readonly: config.dbParameters.readonly,
-  fileMustExist: config.dbParameters.fileMustExist,
-  timeout: config.dbParameters.timeout,
-  verbose: console.log,
-});
-
-const createTablePrepared = db.prepare(createTableString);
-const createTableResult = createTablePrepared.run();
-if (debug) clog.debug(createTableResult.changes);
+  const createTablePrepared = db.prepare(createTableString);
+  const createTableResult = createTablePrepared.run();
+  if (debug) clog.debug(createTableResult.changes);
+} catch (err) {
+  clog.error('Error in Create/Check tell table', err);
+}
 
 const addTell = db.prepare(
-  `INSERT INTO tells (id, dateSent, fromConnector, fromChannel, fromUser, toUser, message, pm, delivered)
-   VALUES (@id, @dateSent, @fromConnector, @fromChannel, @fromUser, @toUser, @message, @pm, @delivered)`,
+  `INSERT INTO ${tableName} (id, dateSent, fromConnector, fromChannel, fromIdent, fromUser, toUser, message, pm, delivered)
+   VALUES (@id, @dateSent, @fromConnector, @fromChannel, @fromIdent, @fromUser, @toUser, @message, @pm, @delivered)`,
 );
 
-/* Turn this off
-const manualTell = {
-  id: genMessageID(),
-  dateSent: new Date().toISOString(),
-  fromConnector: 'irc-connector@wetfish',
-  fromChannel: '#eevee',
-  fromUser: 'Weazzy@lu.dicro.us',
-  toUser: 'foo',
-  message: 'bar baz fizz buzz',
-  pm: 0,
-  delivered: null,
-};
-addTell.run(manualTell);
-*/
-
-// Wait a second then dump everything
-setTimeout(() => {
-  let selectStatement = db.prepare(`SELECT * FROM 'tells' WHERE toUser = @toUser`);
-  let output = selectStatement.all({
-    toUser: 'foo',
-  });
-  clog.debug(output);
-}, 1000);
+const findTellByUser = db.prepare(`SELECT * FROM '${tableName}' WHERE toUser = @toUser`);
+const markAsDelivered = db.prepare(`UPDATE '${tableName}' SET delivered = @date WHERE id = @id`);
+const removeTellByID = db.prepare(`DELETE FROM '${tableName}' WHERE id = @id`);
 
 // Print every message we receive if debug is enabled
 if (debug) {
@@ -101,18 +90,83 @@ process.on('SIGINT', () => {
   handleSIGINT(moduleFullIdent, ipc);
 });
 
-// Check / Create DB
+/* Turn this off
+const manualTell = {
+  id: genMessageID(),
+  dateSent: new Date().toISOString(),
+  fromConnector: 'irc-connector@wetfish',
+  fromChannel: '#eevee',
+  fromUser: 'Weazzy@lu.dicro.us',
+  toUser: 'foo',
+  message: 'bar baz fizz buzz',
+  pm: 0,
+  delivered: null,
+};
+addTell.run(manualTell);
+*/
 
 // Handle incoming tell's
 ipc.subscribe('tell.request', (data) => {
-  // Function: newTell(data);
-  // Stick them into sqlite3 db
+  const request = JSON.parse(data);
+  if (debug) clog.debug('Tell request received', request);
+
+  const toUser = request.args.split(' ')[0];
+  const message = request.args
+    .split(' ')
+    .slice(1)
+    .join(' ');
+
+  const newTellData = {
+    id: request.id,
+    dateSent: new Date().toISOString(),
+    fromConnector: request.replyTo,
+    fromChannel: request.channel,
+    fromIdent: request.ident,
+    fromUser: request.nick,
+    toUser: toUser,
+    platform: request.platform,
+    message: message,
+    pm: 'false',
+    delivered: null,
+  };
+
+  addTell.run(newTellData);
+
+  var replyText = `Message to ${toUser} saved! (ID: ${data.id})`;
+  if (request.platform === 'irc') {
+    replyText = ircColor.green(`Message to ${toUser} saved! (ID: ${request.id})`);
+  }
+  const reply = {
+    target: request.channel,
+    text: replyText,
+  };
+  if (debug) clog.debug('Sending ack message', reply);
+  ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
 });
 
 // Listen for when people say things
-// Query the DB for tells in their name
-// Give them their messages
-// Once someone has been heard from, don't check them again for X minutes
-
-// That's it really
-// Idea: "tellpref" - do you want your tell's in channel or in pm?
+ipc.subscribe('incomingMessageBroadcast.#', (data) => {
+  data = JSON.parse(data);
+  if (debug) clog.debug(`Checking if user ${data.nick} has any tells`);
+  const tells = findTellByUser.all({ toUser: data.nick });
+  if (tells.length) {
+    if (debug) clog.debug(`Found tells for user ${data.nick}`, tells);
+    tells.forEach((tell) => {
+      if (tell.delivered === null) {
+        var replyText = `${data.nick}: ${ircColor.green(tell.fromUser)} at ${ircColor.blue(tell.dateSent)}: ${tell.message}`;
+        if (tell.platform === 'irc') {
+          replyText = `${data.nick}: tell from ${tell.fromUser} at ${tell.dateSent}: ${tell.message}`;
+        }
+        let reply = {
+          target: tell.fromChannel,
+          text: replyText,
+        };
+        ipc.publish(`${tell.fromConnector}.outgoingMessage`, JSON.stringify(reply));
+        markAsDelivered.run({
+          date: new Date().toISOString(),
+          id: tell.id,
+        });
+      }
+    });
+  }
+});

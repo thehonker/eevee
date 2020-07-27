@@ -1,35 +1,30 @@
 'use strict';
 
-// Process manager for eevee-bot
-
-const ident = 'test1';
-const debug = true;
+// Tell module. Fancy text-based answering machine.
 
 import { default as clog } from 'ee-log';
+import { default as ircColor } from 'irc-colors';
+import { ipc, lockPidFile, handleSIGINT, getConfig, getDirName } from '../lib/common.mjs';
+import { default as sqlite3 } from 'better-sqlite3';
 
-import { ipc, lockPidFile, handleSIGINT } from '../lib/common.mjs';
+const __dirname = getDirName();
 
-lockPidFile(ident);
+var moduleFullIdent = 'tell';
 
-// Print every message we receive if debug is enabled
-if (debug) {
-  ipc.subscribe(`${ident}.#`, (data, info) => {
-    clog.debug('incoming IPC message: ', info, data.toString());
+const config = getConfig(moduleFullIdent);
+
+const db = new sqlite3(`${__dirname}/../db/${config.dbFilename}`, {
+  readonly: config.dbParameters.readonly,
+  fileMustExist: config.dbParameters.fileMustExist,
+  timeout: config.dbParameters.timeout,
+  verbose: console.log,
+});
+
+// Wait 10 seconds then dump everything
+setInterval(() => {
+  let selectStatement = db.prepare(`SELECT * FROM 'tell'`);
+  let output = selectStatement.all({
+    toUser: 'foo',
   });
-}
-
-// Things that need to be done once the ipc is "connected"
-ipc.on('start', () => {
-  if (debug) clog.debug('IPC "connected"');
-  if (process.send) process.send('ready');
-});
-
-process.on('SIGINT', () => {
-  clearInterval(foo);
-  handleSIGINT(ident, ipc);
-});
-
-const foo = setInterval(() => {
-  clog.debug('sending ipc message');
-  ipc.publish('eevee-pm.info', { message: 'hello' });
-}, 500);
+  clog.debug(output);
+}, 5000);

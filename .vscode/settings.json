@@ -1,19 +1,23 @@
 {
   "editor.tabSize": 2,
   "cSpell.words": [
+    "AUTOINCREMENT",
     "Qlobber",
     "Weazzy",
     "botspam",
+    "chanmsg",
     "chatbot",
     "eelog",
     "eevee",
     "gitignore",
     "hjson",
     "microservices",
+    "privmsg",
     "pubsub",
     "qfsq",
     "readonly",
     "systemctl",
+    "varchar",
     "wetfish"
   ],
 }

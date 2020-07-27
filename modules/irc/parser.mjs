@@ -20,12 +20,24 @@ if (process.argv[2] === '--instance' && process.argv[3]) {
   if (debug) clog.debug(`My moduleFullIdent is: ${moduleFullIdent}`);
 }
 
+if (process.argv[2] === '--instance' && process.argv[3]) {
+  moduleInstance = process.argv[3];
+  moduleFullIdent = moduleIdent + '@' + moduleInstance;
+} else {
+  if (debug) clog.debug('No instance name provided!');
+  let err = new Error('No instance name provided');
+  err.code = 'E_INSTANCE_REQUIRED';
+  if (process.send) process.send('fail');
+  throw err;
+}
+
 var config = getConfig(moduleFullIdent);
 
 // Later this will check a pass/block list
 // For now it just allows everything .'/)
 const isAllowedCommand = (command) => {
-  return true;
+  // Make eslint shut up about no-unused-vars
+  if (command === command) return true;
 };
 
 if (debug) clog.debug('process.argv:', process.argv);
@@ -53,7 +65,7 @@ process.on('SIGINT', () => {
 });
 
 if (debug) clog.debug(`Subscribing to 'irc-parser.${moduleInstance}.incomingMessage'`);
-ipc.subscribe(`irc-parser.${moduleInstance}.incomingMessage`, (data, info) => {
+ipc.subscribe(`irc-parser.${moduleInstance}.incomingMessage`, (data) => {
   data = JSON.parse(data);
   if (debug) clog.debug('Incoming IRC Message:', data);
   var msgType = null;
@@ -76,6 +88,8 @@ ipc.subscribe(`irc-parser.${moduleInstance}.incomingMessage`, (data, info) => {
     replyTo: `irc-connector.${moduleInstance}`,
   };
   if (debug) clog.debug('Parsed message:', msg);
+
+  ipc.publish(`broadcast.${msg.platform}.${msg.replyTo}`, JSON.stringify(msg));
 
   const prefix = msg.text.slice(0, config.commandPrefix.length);
   if (prefix === config.commandPrefix) {

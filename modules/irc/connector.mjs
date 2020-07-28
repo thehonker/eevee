@@ -98,9 +98,7 @@ client.on('raw', (message) => {
 // When the server sends us a normal message event
 client.on('message', (data) => {
   // This makes a /lot/ of noise
-  /* So we'll turn it off for now
   if (debug) clog.debug('Client message:', data);
-  */
   ipc.publish(`irc-parser.${moduleInstance}.incomingMessage`, JSON.stringify(data));
 });
 

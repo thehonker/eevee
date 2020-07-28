@@ -11,13 +11,16 @@
     "eevee",
     "gitignore",
     "hjson",
+    "lastfm",
     "microservices",
     "privmsg",
     "pubsub",
     "qfsq",
     "readonly",
     "systemctl",
+    "usermode",
     "varchar",
-    "wetfish"
+    "wetfish",
+    "whois"
   ],
 }

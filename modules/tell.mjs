@@ -45,7 +45,8 @@ try {
       'platform' varchar(255),
       'message' text,
       'pm' boolean,
-      'delivered' timestamp
+      'delivered' boolean,
+      'dateDelivered' timestamp
     );
   `;
 
@@ -64,12 +65,12 @@ try {
 }
 
 const addTell = db.prepare(
-  `INSERT INTO ${tableName} (id, dateSent, fromConnector, fromChannel, fromIdent, fromUser, toUser, message, pm, delivered)
-   VALUES (@id, @dateSent, @fromConnector, @fromChannel, @fromIdent, @fromUser, @toUser, @message, @pm, @delivered)`,
+  `INSERT INTO ${tableName} (id, dateSent, fromConnector, fromChannel, fromIdent, fromUser, toUser, platform, message, pm, delivered, dateDelivered)
+   VALUES (@id, @dateSent, @fromConnector, @fromChannel, @fromIdent, @fromUser, @toUser, @platform, @message, @pm, @delivered, @dateDelivered)`,
 );
 
 const findTellByUser = db.prepare(`SELECT * FROM '${tableName}' WHERE toUser = @toUser`);
-const markAsDelivered = db.prepare(`UPDATE '${tableName}' SET delivered = @date WHERE id = @id`);
+const markAsDelivered = db.prepare(`UPDATE '${tableName}' SET dateDelivered = @date, delivered = 1 WHERE id = @id`);
 const removeTellByID = db.prepare(`DELETE FROM '${tableName}' WHERE id = @id`);
 
 // Print every message we receive if debug is enabled
@@ -111,8 +112,9 @@ ipc.subscribe('tell.request', (data) => {
     toUser: toUser,
     platform: request.platform,
     message: message,
-    pm: 'false',
-    delivered: null,
+    pm: 0,
+    delivered: 0,
+    dateDelivered: null,
   };
 
   var replyText = null;
@@ -151,12 +153,11 @@ ipc.subscribe('broadcast.incomingMessage.#', (data) => {
   if (tells.length) {
     if (debug) clog.debug(`Found tells for user ${data.nick}`, tells);
     tells.forEach((tell) => {
-      if (tell.delivered === null) {
-        var replyText = `${data.nick}: ${ircColor.green(tell.fromUser)} at ${ircColor.blue(
-          readableTime(tell.dateSent),
-        )}: ${tell.message}`;
+      if (tell.delivered === 0) {
+        var replyText = `${data.nick}: ${`Message from ${tell.fromUser}, ${readableTime(tell.dateSent)}`}: ${tell.message}`;
         if (tell.platform === 'irc') {
-          replyText = `${data.nick}: tell from ${tell.fromUser} ${readableTime(tell.dateSent)}: ${tell.message}`;
+          // eslint-disable-next-line prettier/prettier
+          replyText = `${data.nick}: ${ircColor.blue(`Message from ${tell.fromUser}, ${readableTime(tell.dateSent)}`)}: ${tell.message}`;
         }
         let reply = {
           target: tell.fromChannel,

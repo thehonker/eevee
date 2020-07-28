@@ -6,6 +6,7 @@ import { default as clog } from 'ee-log';
 import { default as ircColor } from 'irc-colors';
 import { ipc, lockPidFile, handleSIGINT, getConfig, getDirName } from '../lib/common.mjs';
 import { default as sqlite3 } from 'better-sqlite3';
+import { default as needle } from 'needle';
 
 const debug = true;
 var db = null;
@@ -21,10 +22,15 @@ if (process.argv[2] === '--instance' && process.argv[3]) {
   if (debug) clog.debug(`My moduleFullIdent is: ${moduleFullIdent}`);
 }
 
+process.on('SIGINT', () => {
+  db.close();
+  handleSIGINT(moduleFullIdent, ipc);
+});
+
 lockPidFile(moduleFullIdent);
 
 const config = getConfig(moduleFullIdent);
-if (debug) clog.debug(config);
+if (debug) clog.debug('Config', config);
 
 // Check / Create DB
 var tableName = 'lastfm';
@@ -33,19 +39,16 @@ if (moduleInstance) {
 }
 try {
   var createTableString = `
-    CREATE TABLE IF NOT EXISTS '${tableName}' (
+    CREATE TABLE IF NOT EXISTS 'lastfm' (
       'index' integer PRIMARY KEY AUTOINCREMENT,
       'id' varchar(255),
-      'dateSent' timestamp,
+      'dateSet' timestamp,
       'fromConnector' varchar(255),
       'fromChannel' varchar(255),
-      'fromIdent' varchar(255),
-      'fromUser' varchar(255),
-      'toUser' varchar(255),
-      'platform' varchar(255),
-      'message' text,
-      'pm' boolean,
-      'delivered' timestamp
+      'userIdent' varchar(255),
+      'nick' varchar(255),
+      'lastfmUser' varchar(255),
+      'platform' varchar(255)
     );
   `;
 
@@ -60,5 +63,67 @@ try {
   const createTableResult = createTablePrepared.run();
   if (debug) clog.debug(createTableResult.changes);
 } catch (err) {
-  clog.error('Error in Create/Check tell table', err);
+  clog.error('Error in Create/Check lastfm table', err);
+}
+
+const addLastfmUser = db.prepare(
+  `INSERT INTO ${tableName} (id, dateSet, fromConnector, fromChannel, nick, userIdent, lastfmUser, platform)
+   VALUES (@id, @dateSet, @fromConnector, @fromChannel, @nick, @userIdent, @lastfmUser, @platform);`,
+);
+
+const findLastfmUser = db.prepare(`SELECT * FROM '${tableName}' WHERE nick = @nick ORDER BY dateSet DESC;`);
+
+ipc.subscribe('lastfm.request', (data) => {
+  lastfm(data);
+});
+
+ipc.subscribe('fm.request', (data) => {
+  lastfm(data);
+});
+
+function lastfm(data) {
+  const request = JSON.parse(data);
+  if (debug) clog.debug('lastfm request received:', request);
+
+  // Is there an argument to the command?
+  if (request.args.split(' ')[0] != '') {
+    let insert = {
+      id: request.id,
+      dateSet: new Date().toISOString(),
+      fromConnector: request.replyTo,
+      fromChannel: request.channel,
+      userIdent: request.ident,
+      nick: request.nick,
+      lastfmUser: request.args.split(' ')[0],
+      platform: request.platform,
+    };
+    addLastfmUser.run(insert);
+  }
+  const query = findLastfmUser.get({ nick: request.nick });
+
+  if (debug) clog.debug('LastFM User found:', query.lastfmUser);
+
+  const apiUrl = `http://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&user=${query.lastfmUser}&api_key=${config.apiKey}&format=json`;
+  needle.get(apiUrl, (err, response) => {
+    // Off if (debug) clog.debug('LastFM response', response);
+    // Off if (debug) clog.debug('Last played track', response.body.recenttracks.track[0]);
+
+    const track = response.body.recenttracks.track[0];
+    const artist = track.artist['#text'];
+    const album = track.album['#text'];
+    const title = track.name;
+
+    // eslint-disable-next-line prettier/prettier
+    var replyText = `${request.nick} is listening to: ${artist} - ${title}${( (album) ? ('(' + album + ')') : '' )}`;
+    if (request.platform === 'irc') {
+      // eslint-disable-next-line prettier/prettier
+      replyText = `${request.nick} is listening to: ${ircColor.cyan(artist)} - ${ircColor.red(title)}${( (album) ? (' (' + ircColor.brown(album) + ')') : '' )}`;
+    }
+    let reply = {
+      target: request.channel,
+      text: replyText,
+    };
+    if (debug) clog.debug(reply);
+    ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
+  });
 }

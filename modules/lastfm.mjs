@@ -2,17 +2,22 @@
 
 // LastFM module. Gets your currently/last played entry from lastfm and displays it.
 
+// Imports
 import { default as clog } from 'ee-log';
 import { default as ircColor } from 'irc-colors';
-import { ipc, lockPidFile, handleSIGINT, getConfig, getDirName } from '../lib/common.mjs';
 import { default as sqlite3 } from 'better-sqlite3';
 import { default as needle } from 'needle';
 
+import { ipc, lockPidFile, handleSIGINT, getConfig, getDirName } from '../lib/common.mjs';
+
+// Globals
 const debug = true;
 var db = null;
 
+// Yay es6
 const __dirname = getDirName();
 
+// Module ident / instance logic
 var moduleIdent = 'lastfm';
 var moduleInstance = null;
 var moduleFullIdent = moduleIdent;
@@ -22,15 +27,28 @@ if (process.argv[2] === '--instance' && process.argv[3]) {
   if (debug) clog.debug(`My moduleFullIdent is: ${moduleFullIdent}`);
 }
 
+// Create our lock/pid file
+lockPidFile(moduleFullIdent);
+
+// Pull in our config
+const config = getConfig(moduleFullIdent);
+if (debug) clog.debug('Config', config);
+
+// Once IPC is connected, tell our parent process that we're ready
+ipc.on('start', () => {
+  if (debug) clog.debug('IPC "connected"');
+  if (process.send) process.send('ready');
+});
+
+// Handle SIGINT
 process.on('SIGINT', () => {
+  // Close DB connection
   db.close();
+  // Run common handler
   handleSIGINT(moduleFullIdent, ipc);
 });
 
-lockPidFile(moduleFullIdent);
-
-const config = getConfig(moduleFullIdent);
-if (debug) clog.debug('Config', config);
+// End boilerplate
 
 // Check / Create DB
 var tableName = 'lastfm';
@@ -105,8 +123,8 @@ function lastfm(data) {
 
   const apiUrl = `http://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&user=${query.lastfmUser}&api_key=${config.apiKey}&format=json`;
   needle.get(apiUrl, (err, response) => {
-    // Off if (debug) clog.debug('LastFM response', response);
-    // Off if (debug) clog.debug('Last played track', response.body.recenttracks.track[0]);
+    if (debug) clog.debug('LastFM response', response);
+    if (debug) clog.debug('Last played track', response.body.recenttracks.track[0]);
 
     const track = response.body.recenttracks.track[0];
     const artist = track.artist['#text'];

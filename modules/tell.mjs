@@ -70,6 +70,7 @@ const addTell = db.prepare(
 );
 
 const findTellByUser = db.prepare(`SELECT * FROM '${tableName}' WHERE toUser = @toUser`);
+const findTellByID = db.prepare(`SELECT * FROM '${tableName}' WHERE id = @id`);
 const markAsDelivered = db.prepare(`UPDATE '${tableName}' SET dateDelivered = @date, delivered = 1 WHERE id = @id`);
 const removeTellByID = db.prepare(`DELETE FROM '${tableName}' WHERE id = @id`);
 
@@ -123,7 +124,7 @@ ipc.subscribe('tell.request', (data) => {
   } catch (err) {
     replyText = `Saving message ${data.id} failed! ${err.message}`;
     if (request.platform === 'irc') {
-      replyText = ircColor.red(`Saving message ${data.id} failed! ${err.message}`);
+      replyText = ircColor.red(`Saving message ${data.id} failed: ${err.message}`);
     }
     const reply = {
       target: request.channel,
@@ -133,9 +134,9 @@ ipc.subscribe('tell.request', (data) => {
     ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
     return;
   }
-  replyText = `Message to ${toUser} saved! (ID: ${data.id})`;
+  replyText = `${request.nick}: Message to ${toUser} saved! (ID: ${data.id})`;
   if (request.platform === 'irc') {
-    replyText = ircColor.green(`Message to ${toUser} saved! (ID: ${request.id})`);
+    replyText = `${request.nick}: ${ircColor.green(`Message to ${toUser} saved (ID: ${request.id})`)}`;
   }
   const reply = {
     target: request.channel,
@@ -143,6 +144,51 @@ ipc.subscribe('tell.request', (data) => {
   };
   if (debug) clog.debug('Sending ack message', reply);
   ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
+});
+
+ipc.subscribe('rmtell.request', (data) => {
+  const request = JSON.parse(data);
+  if (debug) clog.debug('rmtell request received', request);
+  const id = request.args.split(' ')[0];
+  var replyText = null;
+  const tellById = findTellByID.get({ id });
+  if (tellById) {
+    if (request.ident === tellById.fromIdent) {
+      removeTellByID.run({ id: id });
+      replyText = `${request.nick}: Message with ID ${id} deleted`;
+      if (request.platform === 'irc') {
+        // eslint-disable-next-line prettier/prettier
+        replyText = `${request.nick}: ${ircColor.blue(`Message with ID ${id} deleted`)}`;
+      }
+      let reply = {
+        target: request.channel,
+        text: replyText,
+      };
+      ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
+    } else {
+      replyText = `${request.nick}: Message with ID ${id} was not sent by you`;
+      if (request.platform === 'irc') {
+        // eslint-disable-next-line prettier/prettier
+        replyText = `${request.nick}: ${ircColor.red(`Message with ID ${id} was not sent by you`)}`;
+      }
+      let reply = {
+        target: request.channel,
+        text: replyText,
+      };
+      ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
+    }
+  } else {
+    replyText = `${request.nick}: Message with ID ${id} was not found`;
+    if (request.platform === 'irc') {
+      // eslint-disable-next-line prettier/prettier
+      replyText = `${request.nick}: ${ircColor.red(`Message with ID ${id} was not found`)}`;
+    }
+    let reply = {
+      target: request.channel,
+      text: replyText,
+    };
+    ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
+  }
 });
 
 // Listen for when people say things
@@ -154,10 +200,11 @@ ipc.subscribe('broadcast.incomingMessage.#', (data) => {
     if (debug) clog.debug(`Found tells for user ${data.nick}`, tells);
     tells.forEach((tell) => {
       if (tell.delivered === 0) {
-        var replyText = `${data.nick}: ${`Message from ${tell.fromUser}, ${readableTime(tell.dateSent)}`}: ${tell.message}`;
+        // eslint-disable-next-line prettier/prettier
+        var replyText = `${data.nick}: ${`${tell.fromUser}, ${readableTime(tell.dateSent)}:`} ${tell.message}`;
         if (tell.platform === 'irc') {
           // eslint-disable-next-line prettier/prettier
-          replyText = `${data.nick}: ${ircColor.blue(`Message from ${tell.fromUser}, ${readableTime(tell.dateSent)}`)}: ${tell.message}`;
+          replyText = `${data.nick}: ${ircColor.blue(`${tell.fromUser}, ${readableTime(tell.dateSent)}:`)} ${tell.message}`;
         }
         let reply = {
           target: tell.fromChannel,
@@ -182,7 +229,7 @@ const readableTime = function(date) {
   if (time < 60000) {
     readable = 'less than a minute';
   } else {
-    //Fuck yeah nested ternary operators. Unreadable as hell
+    // Fuck yeah nested ternary operators. Unreadable as hell
     days = days == 0 ? '' : days == 1 ? days + ' day' : days + ' days';
     hours = hours == 0 ? '' : hours == 1 ? hours + ' hour' : hours + ' hours';
     minutes = minutes == 0 ? '' : minutes == 1 ? minutes + ' minute' : minutes + ' minutes';

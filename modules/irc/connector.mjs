@@ -137,6 +137,24 @@ ipc.subscribe(`irc-connector.${moduleInstance}.setTopic`, (data) => {
   client.setTopic(msg.target, msg.text);
 });
 
+// Admin commands
+clog.debug(`Subscribing to: irc-connector.${moduleInstance}.admin`);
+ipc.subscribe(`irc-connector.${moduleInstance}.admin`, (data) => {
+  const request = JSON.parse(data);
+  if (debug) clog.debug('Received admin command:', request);
+  const command = request.argsArray[1];
+  switch (command) {
+    case 'join':
+      client.join(request.argsArray[2], request.argsArray[3]);
+      break;
+    case 'part':
+      client.part(request.channel);
+      break;
+    default:
+      break;
+  }
+});
+
 // Every 5 seconds check to see if we're still connected and reconnect if necessary
 const reconnectCheck = setInterval(() => {
   if (!client.connected) {

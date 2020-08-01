@@ -4,7 +4,7 @@
 
 import { default as clog } from 'ee-log';
 import { default as ircColor } from 'irc-colors';
-import { ipc, lockPidFile, handleSIGINT, getConfig, getDirName } from '../lib/common.mjs';
+import { ipc, lockPidFile, handleSIGINT, getConfig, getDirName, readableTime } from '../lib/common.mjs';
 import { default as sqlite3 } from 'better-sqlite3';
 
 const debug = true;
@@ -201,10 +201,10 @@ ipc.subscribe('broadcast.incomingMessage.#', (data) => {
     tells.forEach((tell) => {
       if (tell.delivered === 0) {
         // eslint-disable-next-line prettier/prettier
-        var replyText = `${data.nick}: ${`${tell.fromUser}, ${readableTime(tell.dateSent)}:`} ${tell.message}`;
+        var replyText = `${data.nick}: ${`${tell.fromUser}, ${readableTime(tell.dateSent)} ago:`} ${tell.message}`;
         if (tell.platform === 'irc') {
           // eslint-disable-next-line prettier/prettier
-          replyText = `${data.nick}: ${ircColor.blue(`${tell.fromUser}, ${readableTime(tell.dateSent)}:`)} ${tell.message}`;
+          replyText = `${data.nick}: ${ircColor.blue(`${tell.fromUser}, ${readableTime(tell.dateSent)} ago:`)} ${tell.message}`;
         }
         let reply = {
           target: tell.fromChannel,
@@ -219,33 +219,3 @@ ipc.subscribe('broadcast.incomingMessage.#', (data) => {
     });
   }
 });
-
-const readableTime = function(date) {
-  var time = Date.now() - Date.parse(date);
-  var days = Math.floor(time / 86400000);
-  var hours = Math.floor(time / 3600000) - days * 24;
-  var minutes = Math.floor(time / 60000) - hours * 60 - days * 1440;
-  var readable = '';
-  if (time < 60000) {
-    readable = 'less than a minute';
-  } else {
-    // Fuck yeah nested ternary operators. Unreadable as hell
-    days = days == 0 ? '' : days == 1 ? days + ' day' : days + ' days';
-    hours = hours == 0 ? '' : hours == 1 ? hours + ' hour' : hours + ' hours';
-    minutes = minutes == 0 ? '' : minutes == 1 ? minutes + ' minute' : minutes + ' minutes';
-
-    if (days != '') {
-      days +=
-        hours != '' && minutes != ''
-          ? ', '
-          : (hours == '' && minutes != '') || (hours != '' && minutes == '')
-          ? ' and '
-          : '';
-    }
-    if (hours != '' && minutes != '') {
-      hours += ' and ';
-    }
-    readable = days + hours + minutes;
-  }
-  return readable + ' ago';
-};

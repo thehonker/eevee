@@ -33,7 +33,7 @@ ipc.subscribe('admin.request', (data) => {
 
   // Check if request is coming from an admin
   if (request.ident === config.botOwner) {
-    // Is it an eevee-pm request?
+    // If it's an eevee-pm request, handle it ourselves
     if (request.argsArray[0] === 'pm') {
       switch (request.argsArray[1]) {
         case 'start':
@@ -57,22 +57,18 @@ ipc.subscribe('admin.request', (data) => {
           break;
       }
     } else {
+      // Anything else push into ipc for modules to pick up on
       const target = request.argsArray[0];
       if (debug) clog.debug(`Sending admin command to ${target}`, request);
       ipc.publish(`${target}.admin`, JSON.stringify(request));
     }
+  } else {
+    const reply = {
+      target: request.channel,
+      text: `${request.nick}: You're not an admin!`,
+    };
+    ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
   }
-  // If it's an eevee-pm request, handle it ourselves
-  // Anything else push into ipc for modules to pick up on
-
-  /* ^c^v'd from echo module, keeping for reference
-  const reply = {
-    target: request.channel,
-    text: request.args,
-  };
-  if (debug) clog.debug(`Sending reply to: ${request.replyTo}.outgoingMessage`, reply);
-  ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
-  */
 });
 
 const eeveePMActions = {

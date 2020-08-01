@@ -13,6 +13,8 @@ var moduleIdent = 'irc-connector';
 var moduleInstance = null;
 var moduleFullIdent = moduleIdent;
 
+var autoReconnect = false;
+
 if (debug) clog.debug('process.argv:', process.argv);
 
 if (process.argv[2] === '--instance' && process.argv[3]) {
@@ -148,16 +150,29 @@ ipc.subscribe(`irc-connector.${moduleInstance}.admin`, (data) => {
       client.join(request.argsArray[2], request.argsArray[3]);
       break;
     case 'part':
-      client.part(request.channel);
+      client.part('Part command received');
+      break;
+    case 'quit':
+      client.quit('Quit command received');
+      break;
+    case 'reconnect':
+      reconnect();
       break;
     default:
       break;
   }
 });
 
+const reconnect = () => {
+  autoReconnect = false;
+  client.quit('Reconnect command received');
+  client.connect(config.client);
+  autoReconnect = true;
+};
+
 // Every 5 seconds check to see if we're still connected and reconnect if necessary
 const reconnectCheck = setInterval(() => {
-  if (!client.connected) {
+  if (!client.connected && autoReconnect) {
     clog.error('Client disconnected, reconnecting');
     client.connect(config.client);
   }

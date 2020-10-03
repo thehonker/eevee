@@ -123,7 +123,7 @@ const eeveePMActions = {
       } else if (result.result === 'fail') {
         var string = null;
         if (result.err.code === 'ENOENT') {
-          string = `Command "stop ${module}" failed: ${result.err.code} at ${result.err.path}. Module not running?`;
+          string = `Command "stop ${module}" failed: ${result.err.code} at ${result.err.path} - Module not running?`;
         } else {
           string = `Command "stop ${module}" failed: Unknown error:\n`;
           string += JSON.stringify(result.err, null, 2);
@@ -144,8 +144,8 @@ const eeveePMActions = {
   status: (request, cb) => {
     const module = request.argsArray[2];
     botStatus({ target: module }, (result) => {
-      var string = 'Command: "status" completed successfully. Running modules:\n';
-      console.log('Command: "status" completed successfully. Running modules:');
+      var string = 'Running modules:\n';
+      console.log('Running modules:');
       const outputTable = new AsciiTable();
       outputTable.setHeading('Module Name', 'pid');
       result.childPID.forEach((child) => {

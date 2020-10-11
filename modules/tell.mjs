@@ -92,7 +92,7 @@ process.on('SIGINT', () => {
   handleSIGINT(moduleFullIdent, ipc);
 });
 
-// Handle incoming tell's
+// Handle incoming tell
 ipc.subscribe('tell.request', (data) => {
   const request = JSON.parse(data);
   if (debug) clog.debug('Tell request received', request);
@@ -193,24 +193,24 @@ ipc.subscribe('rmtell.request', (data) => {
 
 // Listen for when people say things
 ipc.subscribe('broadcast.incomingMessage.#', (data) => {
-  data = JSON.parse(data);
-  if (debug) clog.debug(`Checking if user ${data.nick} has any tells`);
-  const tells = findTellByUser.all({ toUser: data.nick });
+  const message = JSON.parse(data);
+  if (debug) clog.debug(`Checking if user ${message.nick} has any tells`);
+  const tells = findTellByUser.all({ toUser: message.nick });
   if (tells.length) {
-    if (debug) clog.debug(`Found tells for user ${data.nick}`, tells);
+    if (debug) clog.debug(`Found tells for user ${message.nick}`, tells);
     tells.forEach((tell) => {
       if (tell.delivered === 0) {
         // eslint-disable-next-line prettier/prettier
-        var replyText = `${data.nick}: ${`${tell.fromUser}, ${readableTime(tell.dateSent)} ago:`} ${tell.message}`;
+        var replyText = `${message.nick}: ${`${tell.fromUser}, ${readableTime(tell.dateSent)} ago:`} ${tell.message}`;
         if (tell.platform === 'irc') {
           // eslint-disable-next-line prettier/prettier
-          replyText = `${data.nick}: ${ircColor.blue(`${tell.fromUser}, ${readableTime(tell.dateSent)} ago:`)} ${tell.message}`;
+          replyText = `${message.nick}: ${ircColor.blue(`${tell.fromUser}, ${readableTime(tell.dateSent)} ago:`)} ${tell.message}`;
         }
         let reply = {
-          target: tell.fromChannel,
+          target: message.replyTo,
           text: replyText,
         };
-        ipc.publish(`${tell.fromConnector}.outgoingMessage`, JSON.stringify(reply));
+        ipc.publish(`${reply.target}.outgoingMessage`, JSON.stringify(reply));
         markAsDelivered.run({
           date: new Date().toISOString(),
           id: tell.id,

@@ -57,7 +57,7 @@ if (moduleInstance) {
 }
 try {
   var createTableString = `
-    CREATE TABLE IF NOT EXISTS 'lastfm' (
+    CREATE TABLE IF NOT EXISTS '${tableName}' (
       'index' integer PRIMARY KEY AUTOINCREMENT,
       'id' varchar(255),
       'dateSet' timestamp,

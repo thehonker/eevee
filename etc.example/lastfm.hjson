@@ -7,6 +7,7 @@
     inMemory: false,
     verbose: null, // Needs to be a function passed
   },
-  dbFilename: 'tell.sqlite', // Will have ../db/ prepended to it
+  dbFilename: 'lastfm.sqlite', // Will have ../db/ prepended to it
   lastSeenTimeout: 300, // Seconds
+  apiKey: '<token>',
 }

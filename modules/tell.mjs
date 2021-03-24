@@ -69,7 +69,7 @@ const addTell = db.prepare(
    VALUES (@id, @dateSent, @fromConnector, @fromChannel, @fromIdent, @fromUser, @toUser, @platform, @message, @pm, @delivered, @dateDelivered)`,
 );
 
-const findTellByUser = db.prepare(`SELECT * FROM '${tableName}' WHERE toUser = @toUser`);
+const findTellByUser = db.prepare(`SELECT * FROM '${tableName}' WHERE toUser = @toUser AND delivered = 0`);
 const findTellByID = db.prepare(`SELECT * FROM '${tableName}' WHERE id = @id`);
 const markAsDelivered = db.prepare(`UPDATE '${tableName}' SET dateDelivered = @date, delivered = 1 WHERE id = @id`);
 const removeTellByID = db.prepare(`DELETE FROM '${tableName}' WHERE id = @id`);
@@ -194,6 +194,7 @@ ipc.subscribe('rmtell.request', (data) => {
 // Listen for when people say things
 ipc.subscribe('broadcast.incomingMessage.#', (data) => {
   const message = JSON.parse(data);
+  if (debug) clog.debug(message);
   if (debug) clog.debug(`Checking if user ${message.nick} has any tells`);
   const tells = findTellByUser.all({ toUser: message.nick });
   if (tells.length) {
@@ -206,11 +207,12 @@ ipc.subscribe('broadcast.incomingMessage.#', (data) => {
           // eslint-disable-next-line prettier/prettier
           replyText = `${message.nick}: ${ircColor.blue(`${tell.fromUser}, ${readableTime(tell.dateSent)} ago:`)} ${tell.message}`;
         }
-        let reply = {
-          target: message.replyTo,
+        const reply = {
+          target: message.channel,
           text: replyText,
         };
-        ipc.publish(`${reply.target}.outgoingMessage`, JSON.stringify(reply));
+        if (debug) clog.debug(`Sending reply to: ${message.replyTo}.outgoingMessage`, reply);
+        ipc.publish(`${message.replyTo}.outgoingMessage`, JSON.stringify(reply));
         markAsDelivered.run({
           date: new Date().toISOString(),
           id: tell.id,

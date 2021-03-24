@@ -19,7 +19,7 @@ if (debug) clog.debug('process.argv:', process.argv);
 
 if (process.argv[2] === '--instance' && process.argv[3]) {
   moduleInstance = process.argv[3];
-  moduleFullIdent = moduleIdent + '@' + moduleInstance;
+  moduleFullIdent = moduleIdent + '.' + moduleInstance;
 } else {
   if (debug) clog.debug('No instance name provided!');
   let err = new Error('No instance name provided');

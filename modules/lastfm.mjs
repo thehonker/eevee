@@ -23,7 +23,7 @@ var moduleInstance = null;
 var moduleFullIdent = moduleIdent;
 if (process.argv[2] === '--instance' && process.argv[3]) {
   moduleInstance = process.argv[3];
-  moduleFullIdent = moduleIdent + '@' + moduleInstance;
+  moduleFullIdent = moduleIdent + '.' + moduleInstance;
   if (debug) clog.debug(`My moduleFullIdent is: ${moduleFullIdent}`);
 }
 

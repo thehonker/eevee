@@ -9,7 +9,7 @@ const debug = false;
 import { default as clog } from 'ee-log';
 import { default as yargs } from 'yargs';
 import { default as AsciiTable } from 'ascii-table';
-import { ipc, lockPidFile, exit, handleSIGINT } from '../lib/common.mjs';
+import { ipc, lockPidFile, exit, handleSIGINT, getConfig } from '../lib/common.mjs';
 import { start as moduleStart, stop as moduleStop, moduleStatus, status as botStatus } from '../lib/eeveepm.mjs';
 
 // Create and lock a pid file at /tmp/eevee/proc/eevee-pm.pid
@@ -90,6 +90,15 @@ ipc.on('start', () => {
         });
       },
     })
+    .command({
+      command: 'init',
+      desc: 'Cold-start the bot',
+      handler: (argv) => {
+        init(argv, (initCode) => {
+          exit(ident, initCode + initCode);
+        });
+      },
+    })
     .showHelpOnFail(true)
     .demandCommand(1, '')
     .strict()
@@ -135,7 +144,7 @@ function stop(argv, cb) {
   moduleStop(request, (result) => {
     if (result.result === 'success') {
       // eslint-disable-next-line prettier/prettier
-    console.log(`Command: "stop  ${argv.module}" completed successfully (pid was ${result.childPID})`);
+      console.log(`Command: "stop  ${argv.module}" completed successfully (pid was ${result.childPID})`);
       if (cb) cb(0);
       return 0;
     } else if (result.result === 'fail') {
@@ -196,4 +205,36 @@ function status(argv, cb) {
       return 0;
     });
   }
+}
+
+function init(argv, cb) {
+  if (debug) clog.debug('Function init() argv: ', argv);
+  // Get list of modules to start from init config
+  const config = getConfig('init');
+  if (debug) clog.debug(config);
+
+  config.initModules.forEach((module) => {
+    const request = {
+      target: module,
+      action: 'start', // Not strictly required as we're going to publish to eevee-pm.request.start
+    };
+    moduleStart(request, (result) => {
+      if (result.result === 'success') {
+        // eslint-disable-next-line prettier/prettier
+        console.log(`Command: "start ${module}" completed successfully (pid is ${result.childPID})`,);
+      } else if (result.result === 'fail') {
+        let string = null;
+        if (result.err.code === 'E_ALREADY_RUNNING') {
+          string = `Command "start ${module}" failed: ${result.err.code} (at ${result.err.path}).\n`;
+          string += `Module already running? (pid ${result.childPID})`;
+        } else {
+          string = `Command "start ${module}" failed: Unknown error:\n`;
+          string += JSON.stringify(result.err, null, 2);
+        }
+        console.log(string);
+      }
+    });
+  });
+  if (cb) cb(0);
+  return 0;
 }

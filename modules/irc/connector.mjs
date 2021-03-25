@@ -150,7 +150,7 @@ ipc.subscribe(`irc-connector.${moduleInstance}.admin`, (data) => {
       client.join(request.argsArray[2], request.argsArray[3]);
       break;
     case 'part':
-      client.part('Part command received');
+      client.part(request.argsArray[2], 'Part command received');
       break;
     case 'quit':
       client.quit('Quit command received');

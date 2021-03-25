@@ -95,7 +95,7 @@ ipc.subscribe(`irc-parser.${moduleInstance}.incomingMessage`, (data) => {
     ipc.publish(`${msg.replyTo}.outgoingMessage`, JSON.stringify(reply));
     return;
   }
-  
+
   const prefix = msg.text.slice(0, config.commandPrefix.length);
   if (prefix === config.commandPrefix) {
     if (debug) clog.debug(`Message matched prefix ${config.commandPrefix}:`, msg.text);

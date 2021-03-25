@@ -46,7 +46,7 @@ ipc.subscribe('admin.request', (data) => {
           eeveePMActions.stop(request, () => {
             setTimeout(() => {
               eeveePMActions.start(request);
-            }, 500);
+            }, 1000);
           });
           break;
         case 'status':

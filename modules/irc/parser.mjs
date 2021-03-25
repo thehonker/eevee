@@ -86,6 +86,16 @@ ipc.subscribe(`irc-parser.${moduleInstance}.incomingMessage`, (data) => {
 
   ipc.publish(`broadcast.incomingMessage.${msg.platform}.${msg.replyTo}`, JSON.stringify(msg));
 
+  if (msg.text === '.bots') {
+    const reply = {
+      target: msg.channel,
+      text: 'eevee irc connector v0.4.20 [nodejs]',
+    };
+    if (debug) clog.debug(`Sending reply to: ${msg.replyTo}.outgoingMessage`, reply);
+    ipc.publish(`${msg.replyTo}.outgoingMessage`, JSON.stringify(reply));
+    return;
+  }
+  
   const prefix = msg.text.slice(0, config.commandPrefix.length);
   if (prefix === config.commandPrefix) {
     if (debug) clog.debug(`Message matched prefix ${config.commandPrefix}:`, msg.text);

@@ -99,6 +99,15 @@ ipc.on('start', () => {
         });
       },
     })
+    .command({
+      command: 'shutdown',
+      desc: 'Shutdown the bot',
+      handler: (argv) => {
+        shutdown(argv, (shutdownCode) => {
+          exit(ident, shutdownCode + shutdownCode);
+        });
+      },
+    })
     .showHelpOnFail(true)
     .demandCommand(1, '')
     .strict()
@@ -215,26 +224,33 @@ function init(argv, cb) {
 
   config.initModules.forEach((module) => {
     const request = {
-      target: module,
-      action: 'start', // Not strictly required as we're going to publish to eevee-pm.request.start
+      module: module,
     };
-    moduleStart(request, (result) => {
-      if (result.result === 'success') {
-        // eslint-disable-next-line prettier/prettier
-        console.log(`Command: "start ${module}" completed successfully (pid is ${result.childPID})`,);
-      } else if (result.result === 'fail') {
-        let string = null;
-        if (result.err.code === 'E_ALREADY_RUNNING') {
-          string = `Command "start ${module}" failed: ${result.err.code} (at ${result.err.path}).\n`;
-          string += `Module already running? (pid ${result.childPID})`;
-        } else {
-          string = `Command "start ${module}" failed: Unknown error:\n`;
-          string += JSON.stringify(result.err, null, 2);
-        }
-        console.log(string);
-      }
+    clog.debug(request);
+    start(request, (result) => {
+      if (debug) clog.debug(result);
     });
   });
   if (cb) cb(0);
   return 0;
+}
+
+function shutdown(argv, cb) {
+  const statusRequest = {
+    target: null,
+    action: 'status',
+  };
+  botStatus(statusRequest, (result) => {
+    result.childPID.forEach((child) => {
+      const request = {
+        module: child.moduleName,
+      };
+      clog.debug(request);
+      stop(request, (result) => {
+        if (debug) clog.debug(result);
+      });
+    });
+    if (cb) cb(0);
+    return 0;
+  });
 }

@@ -4,7 +4,15 @@
 // Periodically pings modules, if they don't answer then we try to restart them
 
 import { default as clog } from 'ee-log';
-import { ipc, lockPidFile, handleSIGINT, getConfig, getGlobalConfig, getDirName, readableTime } from '../lib/common.mjs';
+import {
+  ipc,
+  lockPidFile,
+  handleSIGINT,
+  getConfig,
+  getGlobalConfig,
+  getDirName,
+  readableTime,
+} from '../lib/common.mjs';
 
 const debug = true;
 

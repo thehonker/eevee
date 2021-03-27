@@ -142,7 +142,7 @@ const eeveePMActions = {
   },
 
   status: (request, cb) => {
-    const module = request.argsArray[2];
+    const module = request.argsArray[3];
     botStatus({ target: module }, (result) => {
       var string = 'Running modules:\n';
       console.log('Running modules:');

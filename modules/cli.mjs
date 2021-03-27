@@ -10,7 +10,7 @@ import { default as clog } from 'ee-log';
 import { default as yargs } from 'yargs';
 import { default as AsciiTable } from 'ascii-table';
 import { ipc, lockPidFile, exit, handleSIGINT, getConfig } from '../lib/common.mjs';
-import { start as moduleStart, stop as moduleStop, moduleStatus, status as botStatus } from '../lib/eeveepm.mjs';
+import { start as moduleStart, stop as moduleStop, moduleStatus, botStatus } from '../lib/eeveepm.mjs';
 
 // Create and lock a pid file at /tmp/eevee/proc/eevee-pm.pid
 lockPidFile(ident);

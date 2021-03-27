@@ -10,7 +10,7 @@ import { default as clog } from 'ee-log';
 import { default as yargs } from 'yargs';
 import { default as AsciiTable } from 'ascii-table';
 import { ipc, lockPidFile, exit, handleSIGINT, getConfig } from '../lib/common.mjs';
-import { start, stop, moduleStatus, botStatus } from '../lib/eeveepm.mjs';
+import { moduleStart, moduleStop, moduleStatus, botStatus } from '../lib/eeveepm.mjs';
 
 // Create and lock a pid file at /tmp/eevee/proc/eevee-pm.pid
 lockPidFile(ident);
@@ -41,6 +41,7 @@ ipc.on('start', () => {
         });
       },
     })
+    // Start a module
     .command({
       command: 'start <module>',
       desc: 'Ask eevee-pm to start a module',
@@ -51,11 +52,12 @@ ipc.on('start', () => {
         });
       },
       handler: (argv) => {
-        moduleStart(argv, (exitCode) => {
+        start(argv, (exitCode) => {
           exit(ident, exitCode);
         });
       },
     })
+    // Stop a module
     .command({
       command: 'stop <module>',
       desc: 'Ask eevee-pm to stop a module',
@@ -66,11 +68,12 @@ ipc.on('start', () => {
         });
       },
       handler: (argv) => {
-        moduleStop(argv, (exitCode) => {
+        stop(argv, (exitCode) => {
           exit(ident, exitCode);
         });
       },
     })
+    // Restart a module
     .command({
       command: 'restart <module>',
       desc: 'Ask eevee-pm to restart a module',
@@ -90,6 +93,7 @@ ipc.on('start', () => {
         });
       },
     })
+    // Start the entire bot
     .command({
       command: 'init',
       desc: 'Cold-start the bot',
@@ -99,6 +103,7 @@ ipc.on('start', () => {
         });
       },
     })
+    // Shutdown the entire bot
     .command({
       command: 'shutdown',
       desc: 'Shutdown the bot',
@@ -116,13 +121,13 @@ ipc.on('start', () => {
   if (debug) clog.debug('argv as parsed by yargs:', argv);
 });
 
-function moduleStart(argv, cb) {
+function start(argv, cb) {
   if (debug) clog.debug('Function start() argv: ', argv);
   const request = {
     target: argv.module,
     action: 'start', // Not strictly required as we're going to publish to eevee-pm.request.start
   };
-  start(request, (result) => {
+  moduleStart(request, (result) => {
     if (result.result === 'success') {
       // eslint-disable-next-line prettier/prettier
       console.log(`Command: "start ${argv.module}" completed successfully (pid is ${result.childPID})`,);
@@ -144,13 +149,13 @@ function moduleStart(argv, cb) {
   });
 }
 
-function moduleStop(argv, cb) {
+function stop(argv, cb) {
   if (debug) clog.debug('Function stop() argv: ', argv);
   const request = {
     target: argv.module,
     action: 'stop',
   };
-  stop(request, (result) => {
+  moduleStop(request, (result) => {
     if (result.result === 'success') {
       // eslint-disable-next-line prettier/prettier
       console.log(`Command: "stop  ${argv.module}" completed successfully (pid was ${result.childPID})`);
@@ -253,6 +258,6 @@ function shutdown(argv, cb) {
     setTimeout(() => {
       if (cb) cb(0);
       return 0;
-    }, 500);
+    }, 1000);
   });
 }

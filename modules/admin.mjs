@@ -8,7 +8,7 @@ const debug = true;
 import { default as clog } from 'ee-log';
 
 import { ipc, lockPidFile, handleSIGINT, getConfig } from '../lib/common.mjs';
-import { start as moduleStart, stop as moduleStop, botStatus } from '../lib/eeveepm.mjs';
+import { moduleStart, moduleStop, botStatus } from '../lib/eeveepm.mjs';
 import { default as AsciiTable } from 'ascii-table';
 
 lockPidFile(ident);

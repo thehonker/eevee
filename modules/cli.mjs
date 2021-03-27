@@ -10,7 +10,7 @@ import { default as clog } from 'ee-log';
 import { default as yargs } from 'yargs';
 import { default as AsciiTable } from 'ascii-table';
 import { ipc, lockPidFile, exit, handleSIGINT, getConfig } from '../lib/common.mjs';
-import { start as moduleStart, stop as moduleStop, moduleStatus, botStatus } from '../lib/eeveepm.mjs';
+import { start, stop, moduleStatus, botStatus } from '../lib/eeveepm.mjs';
 
 // Create and lock a pid file at /tmp/eevee/proc/eevee-pm.pid
 lockPidFile(ident);
@@ -51,7 +51,7 @@ ipc.on('start', () => {
         });
       },
       handler: (argv) => {
-        start(argv, (exitCode) => {
+        moduleStart(argv, (exitCode) => {
           exit(ident, exitCode);
         });
       },
@@ -66,7 +66,7 @@ ipc.on('start', () => {
         });
       },
       handler: (argv) => {
-        stop(argv, (exitCode) => {
+        moduleStop(argv, (exitCode) => {
           exit(ident, exitCode);
         });
       },
@@ -116,13 +116,13 @@ ipc.on('start', () => {
   if (debug) clog.debug('argv as parsed by yargs:', argv);
 });
 
-function start(argv, cb) {
+function moduleStart(argv, cb) {
   if (debug) clog.debug('Function start() argv: ', argv);
   const request = {
     target: argv.module,
     action: 'start', // Not strictly required as we're going to publish to eevee-pm.request.start
   };
-  moduleStart(request, (result) => {
+  start(request, (result) => {
     if (result.result === 'success') {
       // eslint-disable-next-line prettier/prettier
       console.log(`Command: "start ${argv.module}" completed successfully (pid is ${result.childPID})`,);
@@ -144,13 +144,13 @@ function start(argv, cb) {
   });
 }
 
-function stop(argv, cb) {
+function moduleStop(argv, cb) {
   if (debug) clog.debug('Function stop() argv: ', argv);
   const request = {
     target: argv.module,
     action: 'stop',
   };
-  moduleStop(request, (result) => {
+  stop(request, (result) => {
     if (result.result === 'success') {
       // eslint-disable-next-line prettier/prettier
       console.log(`Command: "stop  ${argv.module}" completed successfully (pid was ${result.childPID})`);
@@ -250,7 +250,9 @@ function shutdown(argv, cb) {
         if (debug) clog.debug(result);
       });
     });
-    if (cb) cb(0);
-    return 0;
+    setTimeout(() => {
+      if (cb) cb(0);
+      return 0;
+    }, 500);
   });
 }

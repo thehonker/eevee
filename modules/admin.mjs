@@ -26,6 +26,18 @@ process.on('SIGINT', () => {
   handleSIGINT(ident, ipc);
 });
 
+ipc.subscribe(`${ident}.ping`, (data) => {
+  const pingRequest = JSON.parse(data);
+  if (debug) clog.debug('Ping request received:', pingRequest);
+  const pingReply = {
+    requestId: pingRequest.requestId,
+    ident: ident,
+    pid: process.pid,
+    status: 'running',
+  };
+  ipc.publish(pingRequest.replyTo, JSON.stringify(pingReply));
+});
+
 ipc.subscribe('admin.request', (data) => {
   const request = JSON.parse(data);
   if (debug) clog.debug('Admin request received:', request);

@@ -92,6 +92,18 @@ process.on('SIGINT', () => {
   handleSIGINT(moduleFullIdent, ipc);
 });
 
+ipc.subscribe(`${ident}.ping`, (data) => {
+  const pingRequest = JSON.parse(data);
+  if (debug) clog.debug('Ping request received:', pingRequest);
+  const pingReply = {
+    requestId: pingRequest.requestId,
+    ident: ident,
+    pid: process.pid,
+    status: 'running',
+  };
+  ipc.publish(pingRequest.replyTo, JSON.stringify(pingReply));
+});
+
 // Handle incoming tell
 ipc.subscribe('tell.request', (data) => {
   const request = JSON.parse(data);

@@ -10,7 +10,7 @@ import { default as clog } from 'ee-log';
 import { default as yargs } from 'yargs';
 import { default as AsciiTable } from 'ascii-table';
 import { ipc, lockPidFile, exit, handleSIGINT, getConfig } from '../lib/common.mjs';
-import { moduleStart, moduleStop, moduleStatus, botStatus } from '../lib/eeveepm.mjs';
+import { moduleStart, moduleStop, moduleStatus, botStatus, isRunningPromise } from '../lib/eeveepm.mjs';
 
 // Create and lock a pid file at /tmp/eevee/proc/eevee-pm.pid
 lockPidFile(ident);
@@ -29,9 +29,11 @@ process.on('SIGINT', () => {
   handleSIGINT(ident, ipc, debug);
 });
 
+// Once the ipc has "connected", start parsing args
 ipc.on('start', () => {
   const argv = yargs
     .usage('Usage: $0 <command> [options]')
+    // Show module or bot status
     .command({
       command: 'status [module]',
       desc: 'Show bot or module status',
@@ -40,6 +42,11 @@ ipc.on('start', () => {
           exit(ident, exitCode);
         });
       },
+    })
+    .command({
+      command: 'status2 [module]',
+      desc: 'Show bot or module status',
+      handler: status2,
     })
     // Start a module
     .command({
@@ -219,6 +226,21 @@ function status(argv, cb) {
       return 0;
     });
   }
+}
+
+function status2(argv) {
+  isRunningPromise(ipc, 'echo')
+    .then((childStatus) => {
+      console.log('Received isRunningPromise status');
+      console.log(childStatus);
+      exit(ident, 0);
+      return 0;
+    })
+    .catch((err) => {
+      clog.debug(err);
+      exit(ident, 0);
+      return 0;
+    });
 }
 
 function init(argv, cb) {

@@ -10,7 +10,7 @@ import { default as clog } from 'ee-log';
 import { default as yargs } from 'yargs';
 import { default as AsciiTable } from 'ascii-table';
 import { ipc, lockPidFile, exit, handleSIGINT, getConfig } from '../lib/common.mjs';
-import { moduleStart, moduleStop, moduleStatus, botStatus, isRunningPromise } from '../lib/eeveepm.mjs';
+import { moduleStart, moduleStop, moduleStatus, botStatus } from '../lib/eeveepm.mjs';
 
 // Create and lock a pid file at /tmp/eevee/proc/eevee-pm.pid
 lockPidFile(ident);
@@ -31,22 +31,25 @@ process.on('SIGINT', () => {
 
 // Once the ipc has "connected", start parsing args
 ipc.on('start', () => {
+  ipc.subscribe(`${ident}.ping`, (data) => {
+    const pingRequest = JSON.parse(data);
+    if (debug) clog.debug('Ping request received:', pingRequest);
+    const pingReply = {
+      requestId: pingRequest.requestId,
+      ident: ident,
+      pid: process.pid,
+      status: 'running',
+    };
+    ipc.publish(pingRequest.replyTo, JSON.stringify(pingReply));
+  });
+
   const argv = yargs
     .usage('Usage: $0 <command> [options]')
     // Show module or bot status
     .command({
       command: 'status [module]',
       desc: 'Show bot or module status',
-      handler: (argv) => {
-        status(argv, (exitCode) => {
-          exit(ident, exitCode);
-        });
-      },
-    })
-    .command({
-      command: 'status2 [module]',
-      desc: 'Show bot or module status',
-      handler: status2,
+      handler: status,
     })
     // Start a module
     .command({
@@ -185,8 +188,9 @@ function stop(argv, cb) {
 
 function status(argv, cb) {
   if (debug) clog.debug('Function status() argv: ', argv);
-  var request = null;
+  // var request = null;
   if (argv.module) {
+    /* Disabled
     request = {
       target: argv.module,
       action: 'moduleStatus',
@@ -205,7 +209,24 @@ function status(argv, cb) {
         return 1;
       }
     });
+    */
+    moduleStatus(ipc, argv.module)
+      .then((moduleStatus) => {
+        console.log(`Command: "status ${argv.module}" completed successfully. Module information:`);
+        console.log(`Ident:           ${moduleStatus.ident}`);
+        console.log(`PID:             ${moduleStatus.pid}`);
+        console.log(`Status:          ${moduleStatus.status}`);
+        console.log(`PID File Status: ${moduleStatus.pidFileStatus}`);
+        exit(ident, 0);
+        return 0;
+      })
+      .catch((err) => {
+        clog.debug(err);
+        exit(ident, 0);
+        return 0;
+      });
   } else {
+    /* Disabled
     request = {
       target: null,
       action: 'status',
@@ -225,9 +246,33 @@ function status(argv, cb) {
       if (cb) cb(0);
       return 0;
     });
+    */
+    botStatus(ipc)
+      .then((modules) => {
+        if (debug) clog.debug(modules);
+        console.log('Command: "status" completed successfully. Running modules:');
+        const outputTable = new AsciiTable();
+        outputTable.setHeading('module name', 'pid', 'pid file status');
+        modules.forEach((module) => {
+          if (module.pid === process.pid) {
+            outputTable.addRow(`${module.ident} (this instance)`, module.pid, module.pidFileStatus);
+          } else {
+            outputTable.addRow(module.ident, module.pid, module.pidFileStatus);
+          }
+        });
+        console.log(outputTable.toString());
+        exit(ident, 0);
+        return 0;
+      })
+      .catch((err) => {
+        clog.debug(err);
+        exit(ident, 0);
+        return 0;
+      });
   }
 }
 
+/* Disabled
 function status2(argv) {
   isRunningPromise(ipc, 'echo')
     .then((childStatus) => {
@@ -242,6 +287,7 @@ function status2(argv) {
       return 0;
     });
 }
+*/
 
 function init(argv, cb) {
   if (debug) clog.debug('Function init() argv: ', argv);

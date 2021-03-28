@@ -38,6 +38,7 @@ ipc.subscribe(`${ident}.ping`, (data) => {
     pid: process.pid,
     status: 'running',
   };
+  if (debug) clog.debug(`Sending reply to: ${pingRequest.replyTo}`, pingReply);
   ipc.publish(pingRequest.replyTo, JSON.stringify(pingReply));
 });
 

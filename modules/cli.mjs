@@ -4,7 +4,7 @@
 // Usage: eevee [init, start, stop, restart, config, status, console, dump]
 
 const ident = 'cli';
-const debug = false;
+const debug = true;
 
 import { default as clog } from 'ee-log';
 import { default as yargs } from 'yargs';
@@ -29,20 +29,21 @@ process.on('SIGINT', () => {
   handleSIGINT(ident, ipc, debug);
 });
 
+ipc.subscribe(`${ident}.ping`, (data) => {
+  const pingRequest = JSON.parse(data);
+  if (debug) clog.debug('Ping request received:', pingRequest);
+  const pingReply = {
+    requestId: pingRequest.requestId,
+    ident: ident,
+    pid: process.pid,
+    status: 'running',
+  };
+  if (debug) clog.debug(`Sending reply to: ${pingRequest.replyTo}`, pingReply);
+  ipc.publish(pingRequest.replyTo, JSON.stringify(pingReply));
+});
+
 // Once the ipc has "connected", start parsing args
 ipc.on('start', () => {
-  ipc.subscribe(`${ident}.ping`, (data) => {
-    const pingRequest = JSON.parse(data);
-    if (debug) clog.debug('Ping request received:', pingRequest);
-    const pingReply = {
-      requestId: pingRequest.requestId,
-      ident: ident,
-      pid: process.pid,
-      status: 'running',
-    };
-    ipc.publish(pingRequest.replyTo, JSON.stringify(pingReply));
-  });
-
   const argv = yargs
     .usage('Usage: $0 <command> [options]')
     // Show module or bot status
@@ -186,9 +187,8 @@ function stop(argv, cb) {
   });
 }
 
-function status(argv, cb) {
+function status(argv) {
   if (debug) clog.debug('Function status() argv: ', argv);
-  // var request = null;
   if (argv.module) {
     moduleStatus(ipc, argv.module)
       .then((moduleStatus) => {
@@ -251,6 +251,7 @@ function init(argv, cb) {
 }
 
 function shutdown(argv, cb) {
+  /* Disabled
   const statusRequest = {
     target: null,
     action: 'status',
@@ -270,4 +271,29 @@ function shutdown(argv, cb) {
       return 0;
     }, 1000);
   });
+  */
+
+  botStatus(ipc)
+    .then((modules) => {
+      if (debug) clog.debug(modules);
+      console.log('Command: "status" completed successfully. Running modules:');
+      const outputTable = new AsciiTable();
+      outputTable.setHeading('module name', 'pid', 'pid file status');
+      modules.forEach((module) => {
+        const request = {
+          module: module.ident,
+        };
+        clog.debug(request);
+        stop(request, (result) => {
+          if (debug) clog.debug(result);
+        });
+      });
+      exit(ident, 0);
+      return 0;
+    })
+    .catch((err) => {
+      clog.debug(err);
+      exit(ident, 0);
+      return 0;
+    });
 }

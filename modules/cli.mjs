@@ -190,26 +190,6 @@ function status(argv, cb) {
   if (debug) clog.debug('Function status() argv: ', argv);
   // var request = null;
   if (argv.module) {
-    /* Disabled
-    request = {
-      target: argv.module,
-      action: 'moduleStatus',
-    };
-    moduleStatus(request, (result) => {
-      if (result.result === 'success') {
-        console.log(`Command: "status ${argv.module}" completed successfully (pid is ${result.childPID})`);
-        if (cb) cb(0);
-        return 0;
-      } else if (result.result === 'fail') {
-        var string = null;
-        string = `Command "status ${argv.module}" failed: Unknown error:\n`;
-        string += JSON.stringify(result.err, null, 2);
-        console.log(string);
-        if (cb) cb(1);
-        return 1;
-      }
-    });
-    */
     moduleStatus(ipc, argv.module)
       .then((moduleStatus) => {
         console.log(`Command: "status ${argv.module}" completed successfully. Module information:`);
@@ -226,27 +206,6 @@ function status(argv, cb) {
         return 0;
       });
   } else {
-    /* Disabled
-    request = {
-      target: null,
-      action: 'status',
-    };
-    botStatus(request, (result) => {
-      console.log('Command: "status" completed successfully. Running modules:');
-      const outputTable = new AsciiTable();
-      outputTable.setHeading('Module Name', 'pid');
-      result.childPID.forEach((child) => {
-        if (child.pid === process.pid) {
-          outputTable.addRow(`${child.moduleName} (this instance)`, child.pid);
-        } else {
-          outputTable.addRow(child.moduleName, child.pid);
-        }
-      });
-      console.log(outputTable.toString());
-      if (cb) cb(0);
-      return 0;
-    });
-    */
     botStatus(ipc)
       .then((modules) => {
         if (debug) clog.debug(modules);
@@ -271,23 +230,6 @@ function status(argv, cb) {
       });
   }
 }
-
-/* Disabled
-function status2(argv) {
-  isRunningPromise(ipc, 'echo')
-    .then((childStatus) => {
-      console.log('Received isRunningPromise status');
-      console.log(childStatus);
-      exit(ident, 0);
-      return 0;
-    })
-    .catch((err) => {
-      clog.debug(err);
-      exit(ident, 0);
-      return 0;
-    });
-}
-*/
 
 function init(argv, cb) {
   if (debug) clog.debug('Function init() argv: ', argv);

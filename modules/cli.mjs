@@ -68,20 +68,6 @@ ipc.on('start', () => {
         });
       },
     })
-    // Start a module with callbacks
-    .command({
-      command: 'startCallback <module>',
-      desc: 'Ask eevee-pm to start a module',
-      builder: (yargs) => {
-        yargs.positional('module', {
-          describe: 'The module to start',
-          type: 'string',
-        });
-      },
-      handler: (argv) => {
-        startCallback(argv);
-      },
-    })
     // Stop a module
     .command({
       command: 'stop <module>',
@@ -141,35 +127,6 @@ ipc.on('start', () => {
 
   if (debug) clog.debug('argv as parsed by yargs:', argv);
 });
-
-function startCallback(argv, cb) {
-  if (debug) clog.debug('Function start() argv: ', argv);
-  const request = {
-    target: argv.module,
-    action: 'start', // Not strictly required as we're going to publish to eevee-pm.request.start
-  };
-  moduleStart(request, (result) => {
-    if (result.result === 'success') {
-      // eslint-disable-next-line prettier/prettier
-      console.log(`Command: "start ${argv.module}" completed successfully (pid is ${result.childPID})`,);
-      if (cb) cb(0);
-      return 0;
-    } else if (result.result === 'fail') {
-      let string = null;
-      if (result.err.code === 'E_ALREADY_RUNNING') {
-        string = `Command "start ${argv.module}" failed: ${result.err.code} (at ${result.err.path}).\n`;
-        string += `Module already running? (pid ${result.childPID})`;
-      } else {
-        string = `Command "start ${argv.module}" failed: Unknown error:\n`;
-        string += JSON.stringify(result.err, null, 2);
-      }
-      console.log(string);
-      if (cb) cb(1);
-      exit(ident, 0);
-      return 1;
-    }
-  });
-}
 
 function start(argv) {
   moduleStart(ipc, argv.module)

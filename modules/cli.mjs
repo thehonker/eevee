@@ -68,6 +68,20 @@ ipc.on('start', () => {
         });
       },
     })
+    // Start a module with callbacks
+    .command({
+      command: 'startCallback <module>',
+      desc: 'Ask eevee-pm to start a module',
+      builder: (yargs) => {
+        yargs.positional('module', {
+          describe: 'The module to start',
+          type: 'string',
+        });
+      },
+      handler: (argv) => {
+        startCallback(argv);
+      },
+    })
     // Stop a module
     .command({
       command: 'stop <module>',
@@ -128,7 +142,7 @@ ipc.on('start', () => {
   if (debug) clog.debug('argv as parsed by yargs:', argv);
 });
 
-function start(argv, cb) {
+function startCallback(argv, cb) {
   if (debug) clog.debug('Function start() argv: ', argv);
   const request = {
     target: argv.module,
@@ -151,18 +165,21 @@ function start(argv, cb) {
       }
       console.log(string);
       if (cb) cb(1);
+      exit(ident, 0);
       return 1;
     }
   });
 }
 
-function startPromise(argv) {
-  moduleStartPromise(argv.module)
+function start(argv) {
+  moduleStart(ipc, argv.module)
     .then((result) => {
+      clog.debug(result);
+      exit(ident, 0);
       return;
     })
     .catch((err) => {
-      clog.debug(err);
+      clog.error(err.code, err.message);
       exit(ident, 0);
       return 0;
     });
@@ -246,13 +263,7 @@ function init(argv, cb) {
   if (debug) clog.debug(config);
 
   config.initModules.forEach((module) => {
-    const request = {
-      module: module,
-    };
-    clog.debug(request);
-    start(request, (result) => {
-      if (debug) clog.debug(result);
-    });
+    start({ module: module });
   });
   if (cb) cb(0);
   return 0;

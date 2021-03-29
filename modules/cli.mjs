@@ -118,11 +118,7 @@ ipc.on('start', () => {
     .command({
       command: 'shutdown',
       desc: 'Shutdown the bot',
-      handler: (argv) => {
-        shutdown(argv, (shutdownCode) => {
-          exit(ident, shutdownCode + shutdownCode);
-        });
-      },
+      handler: shutdown,
     })
     .showHelpOnFail(true)
     .demandCommand(1, '')
@@ -250,35 +246,22 @@ function init(argv, cb) {
   return 0;
 }
 
-function shutdown(argv, cb) {
-  /* Disabled
-  const statusRequest = {
-    target: null,
-    action: 'status',
-  };
-  botStatus(statusRequest, (result) => {
-    result.childPID.forEach((child) => {
-      const request = {
-        module: child.moduleName,
-      };
-      clog.debug(request);
-      stop(request, (result) => {
-        if (debug) clog.debug(result);
-      });
-    });
-    setTimeout(() => {
-      if (cb) cb(0);
-      return 0;
-    }, 1000);
-  });
-  */
-
+function shutdown(argv) {
+  if (debug) clog.debug('Function shutdown() argv: ', argv);
   botStatus(ipc)
     .then((modules) => {
       if (debug) clog.debug(modules);
-      console.log('Command: "status" completed successfully. Running modules:');
+      console.log('Command: "shutdown" initiated successfully. Running modules:');
       const outputTable = new AsciiTable();
       outputTable.setHeading('module name', 'pid', 'pid file status');
+      modules.forEach((module) => {
+        if (module.pid === process.pid) {
+          outputTable.addRow(`${module.ident} (this instance)`, module.pid, module.pidFileStatus);
+        } else {
+          outputTable.addRow(module.ident, module.pid, module.pidFileStatus);
+        }
+      });
+      console.log(outputTable.toString());
       modules.forEach((module) => {
         const request = {
           module: module.ident,

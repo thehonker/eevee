@@ -10,7 +10,7 @@ import { default as clog } from 'ee-log';
 import { default as yargs } from 'yargs';
 import { default as AsciiTable } from 'ascii-table';
 import { ipc, lockPidFile, exit, handleSIGINT, getConfig } from '../lib/common.mjs';
-import { moduleStart, moduleStop, moduleStatus, botStatus } from '../lib/eeveepm.mjs';
+import { moduleStart, moduleStop, moduleStatus, botStatus, moduleStartPromise } from '../lib/eeveepm.mjs';
 
 // Create and lock a pid file at /tmp/eevee/proc/eevee-pm.pid
 lockPidFile(ident);
@@ -154,6 +154,18 @@ function start(argv, cb) {
       return 1;
     }
   });
+}
+
+function startPromise(argv) {
+  moduleStartPromise(argv.module)
+    .then((result) => {
+      return;
+    })
+    .catch((err) => {
+      clog.debug(err);
+      exit(ident, 0);
+      return 0;
+    });
 }
 
 function stop(argv, cb) {

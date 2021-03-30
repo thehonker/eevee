@@ -4,7 +4,15 @@
 
 import { default as clog } from 'ee-log';
 import { default as ircColor } from 'irc-colors';
-import { ipc, lockPidFile, handleSIGINT, getConfig, getDirName, readableTime, addPingListener } from '../lib/common.mjs';
+import {
+  ipc,
+  lockPidFile,
+  handleSIGINT,
+  getConfig,
+  getDirName,
+  readableTime,
+  addPingListener,
+} from '../lib/common.mjs';
 import { default as sqlite3 } from 'better-sqlite3';
 
 const debug = true;

@@ -144,33 +144,6 @@ function stop(argv) {
   }
 }
 
-function stopCallback(argv, cb) {
-  if (debug) clog.debug('Function stop() argv: ', argv);
-  const request = {
-    target: argv.module,
-    action: 'stop',
-  };
-  moduleStop(request, (result) => {
-    if (result.result === 'success') {
-      // eslint-disable-next-line prettier/prettier
-      console.log(`Command: "stop  ${argv.module}" completed successfully (pid was ${result.childPID})`);
-      if (cb) cb(0);
-      return 0;
-    } else if (result.result === 'fail') {
-      var string = null;
-      if (result.err.code === 'ENOENT') {
-        string = `Command "stop ${argv.module}" failed: ${result.err.code} at ${result.err.path}. Module not running?`;
-      } else {
-        string = `Command "stop ${argv.module}" failed: Unknown error:\n`;
-        string += JSON.stringify(result.err, null, 2);
-      }
-      console.log(string);
-      if (cb) cb(1);
-      return 1;
-    }
-  });
-}
-
 function status(argv) {
   if (debug) clog.debug('Function status() argv: ', argv);
   if (argv.module) {

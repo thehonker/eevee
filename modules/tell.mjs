@@ -36,6 +36,24 @@ setPingListener(ipc, moduleFullIdent, 'init');
 const config = getConfig(moduleFullIdent);
 if (debug) clog.debug(config);
 
+// Print every message we receive if debug is enabled
+if (debug) {
+  ipc.subscribe(`${moduleFullIdent}.#`, (data, info) => {
+    clog.debug('incoming IPC message: ', info, data.toString());
+  });
+}
+
+// Things that need to be done once the ipc is "connected"
+ipc.on('start', () => {
+  if (debug) clog.debug('IPC "connected"');
+  if (process.send) process.send('ready');
+});
+
+process.on('SIGINT', () => {
+  db.close();
+  handleSIGINT(moduleFullIdent, ipc);
+});
+
 // Check / Create DB
 var tableName = 'tell';
 if (moduleInstance) {
@@ -84,23 +102,7 @@ const findTellByID = db.prepare(`SELECT * FROM '${tableName}' WHERE id = @id`);
 const markAsDelivered = db.prepare(`UPDATE '${tableName}' SET dateDelivered = @date, delivered = 1 WHERE id = @id`);
 const removeTellByID = db.prepare(`DELETE FROM '${tableName}' WHERE id = @id`);
 
-// Print every message we receive if debug is enabled
-if (debug) {
-  ipc.subscribe(`${moduleFullIdent}.#`, (data, info) => {
-    clog.debug('incoming IPC message: ', info, data.toString());
-  });
-}
-
-// Things that need to be done once the ipc is "connected"
-ipc.on('start', () => {
-  if (debug) clog.debug('IPC "connected"');
-  if (process.send) process.send('ready');
-});
-
-process.on('SIGINT', () => {
-  db.close();
-  handleSIGINT(moduleFullIdent, ipc);
-});
+setPingListener(ipc, moduleFullIdent, 'running');
 
 // Handle incoming tell
 ipc.subscribe('tell.request', (data) => {

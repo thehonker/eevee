@@ -33,6 +33,7 @@ setPingListener(ipc, ident, 'init');
 
 // Once the ipc has "connected", start parsing args
 ipc.on('start', () => {
+  setPingListener(ipc, ident, 'running');
   const argv = yargs
     .usage('Usage: $0 <command> [options]')
     // Show module or bot status
@@ -150,10 +151,10 @@ function status(argv) {
     moduleStatus(ipc, argv.module)
       .then((moduleStatus) => {
         console.log(`Command: "status ${argv.module}" completed successfully. Module information:`);
-        console.log(`Ident:           ${moduleStatus.ident}`);
-        console.log(`PID:             ${moduleStatus.pid}`);
-        console.log(`Status:          ${moduleStatus.status}`);
-        console.log(`PID File Status: ${moduleStatus.pidFileStatus}`);
+        const outputTable = new AsciiTable();
+        outputTable.setHeading('module name', 'status', 'pid', 'pid file');
+        outputTable.addRow(moduleStatus.ident, moduleStatus.status, moduleStatus.pid, moduleStatus.pidFileStatus);
+        console.log(outputTable.toString());
         exit(ident, 0);
         return 0;
       })
@@ -168,12 +169,12 @@ function status(argv) {
         if (debug) clog.debug(modules);
         console.log('Command: "status" completed successfully. Running modules:');
         const outputTable = new AsciiTable();
-        outputTable.setHeading('module name', 'pid', 'pid file status');
+        outputTable.setHeading('module name', 'status', 'pid', 'pid file');
         modules.forEach((module) => {
           if (module.pid === process.pid) {
-            outputTable.addRow(`${module.ident} (this instance)`, module.pid, module.pidFileStatus);
+            outputTable.addRow(`${module.ident} (this instance)`, module.status, module.pid, module.pidFileStatus);
           } else {
-            outputTable.addRow(module.ident, module.pid, module.pidFileStatus);
+            outputTable.addRow(module.ident, module.status, module.pid, module.pidFileStatus);
           }
         });
         console.log(outputTable.toString());

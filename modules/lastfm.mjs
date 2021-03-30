@@ -40,6 +40,7 @@ if (debug) clog.debug('Config', config);
 ipc.on('start', () => {
   if (debug) clog.debug('IPC "connected"');
   if (process.send) process.send('ready');
+  
 });
 
 // Handle SIGINT
@@ -84,6 +85,7 @@ try {
   if (debug) clog.debug(createTableResult.changes);
 } catch (err) {
   clog.error('Error in Create/Check lastfm table', err);
+  setPingListener(ipc, moduleFullIdent, 'error');
 }
 
 const addLastfmUser = db.prepare(
@@ -92,6 +94,8 @@ const addLastfmUser = db.prepare(
 );
 
 const findLastfmUser = db.prepare(`SELECT * FROM '${tableName}' WHERE nick = @nick ORDER BY dateSet DESC;`);
+
+setPingListener(ipc, moduleFullIdent, 'running');
 
 ipc.subscribe('lastfm.request', (data) => {
   lastfm(data);

@@ -17,6 +17,7 @@ setPingListener(ipc, ident, 'init');
 ipc.on('start', () => {
   if (debug) clog.debug('IPC "connected"');
   if (process.send) process.send('ready');
+  setPingListener(ipc, ident, 'running');
 });
 
 process.on('SIGINT', () => {

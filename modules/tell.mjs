@@ -202,7 +202,7 @@ ipc.subscribe('rmtell.request', (data) => {
 });
 
 // Listen for when people say things
-ipc.subscribe('broadcast.incomingMessage.#', (data) => {
+ipc.subscribe('_broadcast.incomingMessage.#', (data) => {
   const message = JSON.parse(data);
   if (debug) clog.debug(message);
   if (debug) clog.debug(`Checking if user ${message.nick} has any tells`);

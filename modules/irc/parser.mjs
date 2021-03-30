@@ -86,7 +86,7 @@ ipc.subscribe(`irc-parser.${moduleInstance}.incomingMessage`, (data) => {
   };
   if (debug) clog.debug('Parsed message:', msg);
 
-  ipc.publish(`broadcast.incomingMessage.${msg.platform}.${msg.replyTo}`, JSON.stringify(msg));
+  ipc.publish(`_broadcast.incomingMessage.${msg.platform}.${msg.replyTo}`, JSON.stringify(msg));
 
   if (msg.text === '.bots') {
     const reply = {

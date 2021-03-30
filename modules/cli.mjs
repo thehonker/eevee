@@ -123,8 +123,8 @@ function start(argv) {
     })
     .catch((err) => {
       clog.error(err.code, err.message);
-      exit(ident, 0);
-      return 0;
+      exit(ident, 1);
+      return 1;
     });
 }
 
@@ -139,8 +139,8 @@ function stop(argv) {
       })
       .catch((err) => {
         clog.error(err.code, err.message);
-        exit(ident, 0);
-        return 0;
+        exit(ident, 1);
+        return 1;
       });
   }
 }
@@ -160,8 +160,8 @@ function status(argv) {
       })
       .catch((err) => {
         clog.debug(err);
-        exit(ident, 0);
-        return 0;
+        exit(ident, 1);
+        return 1;
       });
   } else {
     botStatus(ipc)
@@ -183,22 +183,26 @@ function status(argv) {
       })
       .catch((err) => {
         clog.debug(err);
-        exit(ident, 0);
-        return 0;
+        exit(ident, 1);
+        return 1;
       });
   }
 }
 
-function init(argv, cb) {
+function init(argv) {
   if (debug) clog.debug('Function init() argv: ', argv);
   // Get list of modules to start from init config
   const config = getConfig('init');
   if (debug) clog.debug(config);
 
   config.initModules.forEach((module) => {
-    start({ module: module });
+    start({ module: module }).catch((err) => {
+      clog.error(err);
+      exit(ident, 1);
+      return 1;
+    });
   });
-  if (cb) cb(0);
+  exit(ident, 0);
   return 0;
 }
 
@@ -218,17 +222,24 @@ function shutdown(argv) {
         }
       });
       console.log(outputTable.toString());
+      var stoppedModules = [];
       modules.forEach((module) => {
-        const request = {
-          module: module.ident,
-        };
-        clog.debug(request);
-        stop(request, (result) => {
-          if (debug) clog.debug(result);
-        });
+        if (module.ident != 'cli') {
+          const request = {
+            module: module.ident,
+          };
+          clog.debug(request);
+          stop(request, (result) => {
+            if (debug) clog.debug(result);
+          });
+          stoppedModules.push(module);
+          if (modules.length == stoppedModules.length) {
+            exit(ident, 0);
+            return 0;
+          }
+        }
       });
-      exit(ident, 0);
-      return 0;
+      return;
     })
     .catch((err) => {
       clog.debug(err);

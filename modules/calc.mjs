@@ -7,12 +7,12 @@ const debug = true;
 
 import { default as clog } from 'ee-log';
 import { default as ircColor } from 'irc-colors';
-import { ipc, lockPidFile, handleSIGINT, addPingListener } from '../lib/common.mjs';
+import { ipc, lockPidFile, handleSIGINT, setPingListener } from '../lib/common.mjs';
 import { default as mathjs } from 'mathjs';
 
 lockPidFile(ident);
 
-addPingListener(ipc, ident);
+setPingListener(ipc, ident, 'init');
 
 // Print every message we receive if debug is enabled
 if (debug) {

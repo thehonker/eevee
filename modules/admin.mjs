@@ -7,7 +7,7 @@ const debug = true;
 
 import { default as clog } from 'ee-log';
 
-import { ipc, lockPidFile, handleSIGINT, getConfig, addPingListener } from '../lib/common.mjs';
+import { ipc, lockPidFile, handleSIGINT, getConfig, setPingListener } from '../lib/common.mjs';
 import { moduleStart, moduleStop, botStatus } from '../lib/eeveepm.mjs';
 import { default as AsciiTable } from 'ascii-table';
 
@@ -26,7 +26,7 @@ process.on('SIGINT', () => {
   handleSIGINT(ident, ipc);
 });
 
-addPingListener(ipc, ident);
+setPingListener(ipc, ident, 'init');
 
 ipc.subscribe('admin.request', (data) => {
   const request = JSON.parse(data);

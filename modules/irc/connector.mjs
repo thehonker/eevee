@@ -7,7 +7,7 @@ const debug = true;
 import { default as clog } from 'ee-log';
 import { default as IRC } from 'irc-framework';
 
-import { ipc, lockPidFile, handleSIGINT, getConfig, addPingListener } from '../../lib/common.mjs';
+import { ipc, lockPidFile, handleSIGINT, getConfig, setPingListener } from '../../lib/common.mjs';
 
 var moduleIdent = 'irc-connector';
 var moduleInstance = null;
@@ -30,7 +30,7 @@ if (process.argv[2] === '--instance' && process.argv[3]) {
 
 lockPidFile(moduleFullIdent);
 
-addPingListener(ipc, moduleFullIdent);
+setPingListener(ipc, moduleFullIdent);
 
 const config = getConfig(moduleFullIdent);
 // Add channel list to post-connect actions

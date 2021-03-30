@@ -7,11 +7,11 @@ const debug = true;
 
 import { default as clog } from 'ee-log';
 
-import { ipc, lockPidFile, handleSIGINT, addPingListener } from '../lib/common.mjs';
+import { ipc, lockPidFile, handleSIGINT, setPingListener } from '../lib/common.mjs';
 
 lockPidFile(ident);
 
-addPingListener(ipc, ident);
+setPingListener(ipc, ident, 'init');
 
 // Things that need to be done once the ipc is "connected"
 ipc.on('start', () => {

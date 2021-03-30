@@ -11,7 +11,7 @@ import {
   getConfig,
   getDirName,
   readableTime,
-  addPingListener,
+  setPingListener,
 } from '../lib/common.mjs';
 import { default as sqlite3 } from 'better-sqlite3';
 
@@ -31,7 +31,7 @@ if (process.argv[2] === '--instance' && process.argv[3]) {
 
 lockPidFile(moduleFullIdent);
 
-addPingListener(ipc, moduleFullIdent);
+setPingListener(ipc, moduleFullIdent, 'init');
 
 const config = getConfig(moduleFullIdent);
 if (debug) clog.debug(config);

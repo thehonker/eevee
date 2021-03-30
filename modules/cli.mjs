@@ -9,7 +9,7 @@ const debug = true;
 import { default as clog } from 'ee-log';
 import { default as yargs } from 'yargs';
 import { default as AsciiTable } from 'ascii-table';
-import { ipc, lockPidFile, exit, handleSIGINT, getConfig, addPingListener } from '../lib/common.mjs';
+import { ipc, lockPidFile, exit, handleSIGINT, getConfig, setPingListener } from '../lib/common.mjs';
 import { moduleStart, moduleStop, moduleStatus, botStatus } from '../lib/eeveepm.mjs';
 
 // Create and lock a pid file at /tmp/eevee/proc/eevee-pm.pid
@@ -29,7 +29,7 @@ process.on('SIGINT', () => {
   handleSIGINT(ident, ipc, debug);
 });
 
-addPingListener(ipc, ident);
+setPingListener(ipc, ident, 'init');
 
 // Once the ipc has "connected", start parsing args
 ipc.on('start', () => {

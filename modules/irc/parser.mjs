@@ -8,7 +8,7 @@ const debug = true;
 
 import { default as clog } from 'ee-log';
 
-import { ipc, lockPidFile, handleSIGINT, genMessageID, getConfig, addPingListener } from '../../lib/common.mjs';
+import { ipc, lockPidFile, handleSIGINT, genMessageID, getConfig, setPingListener } from '../../lib/common.mjs';
 
 var moduleIdent = 'irc-parser';
 var moduleInstance = null;
@@ -39,7 +39,7 @@ if (debug) clog.debug('process.argv:', process.argv);
 
 lockPidFile(moduleFullIdent);
 
-addPingListener(ipc, moduleFullIdent);
+setPingListener(ipc, moduleFullIdent);
 
 // Print every message we receive if debug is enabled
 /* Disabled for now

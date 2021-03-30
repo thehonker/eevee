@@ -12,7 +12,7 @@ import {
   getGlobalConfig,
   getDirName,
   readableTime,
-  addPingListener
+  setPingListener
 } from '../lib/common.mjs';
 
 const debug = true;
@@ -23,7 +23,7 @@ var moduleIdent = 'watchdog';
 
 lockPidFile(moduleIdent);
 
-addPingListener(ipc, moduleIdent);
+setPingListener(ipc, moduleIdent, 'init');
 
 const config = getConfig(moduleIdent);
 config.global = getGlobalConfig();

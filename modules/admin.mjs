@@ -7,7 +7,7 @@ const debug = true;
 
 import { default as clog } from 'ee-log';
 
-import { ipc, lockPidFile, handleSIGINT, getConfig } from '../lib/common.mjs';
+import { ipc, lockPidFile, handleSIGINT, getConfig, addPingListener } from '../lib/common.mjs';
 import { moduleStart, moduleStop, botStatus } from '../lib/eeveepm.mjs';
 import { default as AsciiTable } from 'ascii-table';
 
@@ -26,17 +26,7 @@ process.on('SIGINT', () => {
   handleSIGINT(ident, ipc);
 });
 
-ipc.subscribe(`${ident}.ping`, (data) => {
-  const pingRequest = JSON.parse(data);
-  if (debug) clog.debug('Ping request received:', pingRequest);
-  const pingReply = {
-    requestId: pingRequest.requestId,
-    ident: ident,
-    pid: process.pid,
-    status: 'running',
-  };
-  ipc.publish(pingRequest.replyTo, JSON.stringify(pingReply));
-});
+addPingListener(ipc, ident);
 
 ipc.subscribe('admin.request', (data) => {
   const request = JSON.parse(data);

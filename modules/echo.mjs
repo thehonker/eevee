@@ -7,9 +7,11 @@ const debug = true;
 
 import { default as clog } from 'ee-log';
 
-import { ipc, lockPidFile, handleSIGINT } from '../lib/common.mjs';
+import { ipc, lockPidFile, handleSIGINT, addPingListener } from '../lib/common.mjs';
 
 lockPidFile(ident);
+
+addPingListener(ipc, ident);
 
 // Things that need to be done once the ipc is "connected"
 ipc.on('start', () => {
@@ -19,19 +21,6 @@ ipc.on('start', () => {
 
 process.on('SIGINT', () => {
   handleSIGINT(ident, ipc);
-});
-
-ipc.subscribe(`${ident}.ping`, (data) => {
-  const pingRequest = JSON.parse(data);
-  if (debug) clog.debug('Ping request received:', pingRequest);
-  const pingReply = {
-    requestId: pingRequest.requestId,
-    ident: ident,
-    pid: process.pid,
-    status: 'running',
-  };
-  if (debug) clog.debug(`Sending reply to: ${pingRequest.replyTo}`, pingReply);
-  ipc.publish(pingRequest.replyTo, JSON.stringify(pingReply));
 });
 
 ipc.subscribe('echo.request', (data) => {

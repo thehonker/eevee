@@ -12,6 +12,7 @@ import {
   getGlobalConfig,
   getDirName,
   readableTime,
+  addPingListener
 } from '../lib/common.mjs';
 
 const debug = true;
@@ -21,6 +22,8 @@ const __dirname = getDirName();
 var moduleIdent = 'watchdog';
 
 lockPidFile(moduleIdent);
+
+addPingListener(ipc, moduleIdent);
 
 const config = getConfig(moduleIdent);
 config.global = getGlobalConfig();
@@ -41,16 +44,4 @@ ipc.on('start', () => {
 
 process.on('SIGINT', () => {
   handleSIGINT(moduleIdent, ipc);
-});
-
-ipc.subscribe(`${ident}.ping`, (data) => {
-  const pingRequest = JSON.parse(data);
-  if (debug) clog.debug('Ping request received:', pingRequest);
-  const pingReply = {
-    requestId: pingRequest.requestId,
-    ident: ident,
-    pid: process.pid,
-    status: 'running',
-  };
-  ipc.publish(pingRequest.replyTo, JSON.stringify(pingReply));
 });

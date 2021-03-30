@@ -4,7 +4,7 @@
 
 import { default as clog } from 'ee-log';
 import { default as ircColor } from 'irc-colors';
-import { ipc, lockPidFile, handleSIGINT, getConfig, getDirName, readableTime } from '../lib/common.mjs';
+import { ipc, lockPidFile, handleSIGINT, getConfig, getDirName, readableTime, addPingListener } from '../lib/common.mjs';
 import { default as sqlite3 } from 'better-sqlite3';
 
 const debug = true;
@@ -22,6 +22,8 @@ if (process.argv[2] === '--instance' && process.argv[3]) {
 }
 
 lockPidFile(moduleFullIdent);
+
+addPingListener(ipc, moduleFullIdent);
 
 const config = getConfig(moduleFullIdent);
 if (debug) clog.debug(config);
@@ -90,18 +92,6 @@ ipc.on('start', () => {
 process.on('SIGINT', () => {
   db.close();
   handleSIGINT(moduleFullIdent, ipc);
-});
-
-ipc.subscribe(`${ident}.ping`, (data) => {
-  const pingRequest = JSON.parse(data);
-  if (debug) clog.debug('Ping request received:', pingRequest);
-  const pingReply = {
-    requestId: pingRequest.requestId,
-    ident: ident,
-    pid: process.pid,
-    status: 'running',
-  };
-  ipc.publish(pingRequest.replyTo, JSON.stringify(pingReply));
 });
 
 // Handle incoming tell

@@ -7,10 +7,12 @@ const debug = true;
 
 import { default as clog } from 'ee-log';
 import { default as ircColor } from 'irc-colors';
-import { ipc, lockPidFile, handleSIGINT } from '../lib/common.mjs';
+import { ipc, lockPidFile, handleSIGINT, addPingListener } from '../lib/common.mjs';
 import { default as mathjs } from 'mathjs';
 
 lockPidFile(ident);
+
+addPingListener(ipc, ident);
 
 // Print every message we receive if debug is enabled
 if (debug) {
@@ -27,19 +29,6 @@ ipc.on('start', () => {
 
 process.on('SIGINT', () => {
   handleSIGINT(ident, ipc);
-});
-
-ipc.subscribe(`${ident}.ping`, (data) => {
-  const pingRequest = JSON.parse(data);
-  if (debug) clog.debug('Ping request received:', pingRequest);
-  const pingReply = {
-    requestId: pingRequest.requestId,
-    ident: ident,
-    pid: process.pid,
-    status: 'running',
-  };
-  if (debug) clog.debug(`Sending reply to: ${pingRequest.replyTo}`, pingReply);
-  ipc.publish(pingRequest.replyTo, JSON.stringify(pingReply));
 });
 
 ipc.subscribe('calc.request', (data) => {

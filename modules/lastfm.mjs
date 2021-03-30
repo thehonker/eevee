@@ -8,7 +8,7 @@ import { default as ircColor } from 'irc-colors';
 import { default as sqlite3 } from 'better-sqlite3';
 import { default as needle } from 'needle';
 
-import { ipc, lockPidFile, handleSIGINT, getConfig, getDirName } from '../lib/common.mjs';
+import { ipc, lockPidFile, handleSIGINT, getConfig, getDirName, addPingListener } from '../lib/common.mjs';
 
 // Globals
 const debug = true;
@@ -30,6 +30,8 @@ if (process.argv[2] === '--instance' && process.argv[3]) {
 // Create our lock/pid file
 lockPidFile(moduleFullIdent);
 
+addPingListener(ipc, moduleFullIdent);
+
 // Pull in our config
 const config = getConfig(moduleFullIdent);
 if (debug) clog.debug('Config', config);
@@ -46,18 +48,6 @@ process.on('SIGINT', () => {
   db.close();
   // Run common handler
   handleSIGINT(moduleFullIdent, ipc);
-});
-
-ipc.subscribe(`${ident}.ping`, (data) => {
-  const pingRequest = JSON.parse(data);
-  if (debug) clog.debug('Ping request received:', pingRequest);
-  const pingReply = {
-    requestId: pingRequest.requestId,
-    ident: ident,
-    pid: process.pid,
-    status: 'running',
-  };
-  ipc.publish(pingRequest.replyTo, JSON.stringify(pingReply));
 });
 
 // End boilerplate

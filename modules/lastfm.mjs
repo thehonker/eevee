@@ -124,36 +124,45 @@ function lastfm(data) {
   }
   const query = findLastfmUser.get({ nick: request.nick });
 
-  if (debug) clog.debug('LastFM User found:', query.lastfmUser);
+  if (query) {
+    if (debug) clog.debug('LastFM User found:', query.lastfmUser);
 
-  const apiUrl = `http://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&user=${query.lastfmUser}&api_key=${config.apiKey}&format=json`;
-  needle.get(apiUrl, (err, response) => {
-    if (err) {
-      clog.err(err);
-      return;
-    }
-
-    if (response.body) {
-      if (debug) clog.debug('LastFM response', response);
-      if (debug) clog.debug('Last played track', response.body.recenttracks.track[0]);
-
-      const track = response.body.recenttracks.track[0];
-      const artist = track.artist['#text'];
-      const album = track.album['#text'];
-      const title = track.name;
-
-      // eslint-disable-next-line prettier/prettier
-      var replyText = `${request.nick} is listening to: ${artist} - ${title}${( (album) ? ('(' + album + ')') : '' )}`;
-      if (request.platform === 'irc') {
-        // eslint-disable-next-line prettier/prettier
-        replyText = `${request.nick} is listening to: ${ircColor.cyan(artist)} - ${ircColor.red(title)}${( (album) ? (' (' + ircColor.brown(album) + ')') : '' )}`;
+    const apiUrl = `http://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&user=${query.lastfmUser}&api_key=${config.apiKey}&format=json`;
+    needle.get(apiUrl, (err, response) => {
+      if (err) {
+        clog.err(err);
+        return;
       }
-      let reply = {
-        target: request.channel,
-        text: replyText,
-      };
-      if (debug) clog.debug(reply);
-      ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
-    }
-  });
+
+      if (response.body) {
+        if (debug) clog.debug('LastFM response', response);
+        if (debug) clog.debug('Last played track', response.body.recenttracks.track[0]);
+
+        const track = response.body.recenttracks.track[0];
+        const artist = track.artist['#text'];
+        const album = track.album['#text'];
+        const title = track.name;
+
+        // eslint-disable-next-line prettier/prettier
+        var replyText = `${request.nick} is listening to: ${artist} - ${title}${( (album) ? ('(' + album + ')') : '' )}`;
+        if (request.platform === 'irc') {
+          // eslint-disable-next-line prettier/prettier
+          replyText = `${request.nick} is listening to: ${ircColor.cyan(artist)} - ${ircColor.red(title)}${( (album) ? (' (' + ircColor.brown(album) + ')') : '' )}`;
+        }
+        let reply = {
+          target: request.channel,
+          text: replyText,
+        };
+        if (debug) clog.debug(reply);
+        ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
+      }
+    });
+  } else {
+    let reply = {
+      target: request.channel,
+      text: 'You need to set a lastfm username',
+    };
+    if (debug) clog.debug(reply);
+    ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
+  }
 }

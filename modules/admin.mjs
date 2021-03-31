@@ -8,10 +8,11 @@ const debug = true;
 import { default as clog } from 'ee-log';
 
 import { ipc, lockPidFile, handleSIGINT, getConfig, setPingListener } from '../lib/common.mjs';
-import { moduleStart, moduleStop, botStatus } from '../lib/eeveepm.mjs';
+import { moduleStart, moduleStop, botStatus, moduleStatus } from '../lib/eeveepm.mjs';
 import { default as AsciiTable } from 'ascii-table';
 
 lockPidFile(ident);
+setPingListener(ipc, ident, 'init');
 
 const config = getConfig(ident);
 if (debug) clog.debug(config);
@@ -26,8 +27,6 @@ ipc.on('start', () => {
 process.on('SIGINT', () => {
   handleSIGINT(ident, ipc);
 });
-
-setPingListener(ipc, ident, 'init');
 
 ipc.subscribe('admin.request', (data) => {
   const request = JSON.parse(data);
@@ -111,17 +110,50 @@ const eeveePMActions = {
   },
 
   start: (request) => {
+    clog.debug(request);
     const module = request.argsArray[2];
     moduleStart(ipc, module)
       .then((result) => {
-        
+        if (debug) clog.debug(result);
+        const reply = {
+          target: request.channel,
+          text: `Command: "start ${module}" completed successfully (pid is ${result.pid})`,
+        };
+        ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
+        return;
       })
       .catch((err) => {
-
+        clog.error(err);
+        var reply = null;
+        switch (err.code) {
+          case 'E_RUNNING_VALID':
+            reply = {
+              target: request.channel,
+              text: `Command: "start ${module}" failed: Module already running (valid pid file)`,
+            };
+            ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
+            return;
+          case 'E_RUNNING_STALE':
+            reply = {
+              target: request.channel,
+              text: `Command: "start ${module}" failed: Module already running (stale pid file)`,
+            };
+            ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
+            return;
+          case 'E_UNRESPONSIVE_STALE':
+            reply = {
+              target: request.channel,
+              text: `Command: "start ${module}" failed: Module might be running but but did not respond to to ping (manual intervention may be required)`,
+            };
+            ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
+            return;
+          default:
+            return;
+        }
       });
   },
 
-  stop: (request, cb) => {
+  stopCallback: (request, cb) => {
     const module = request.argsArray[2];
     moduleStop({ target: module }, (result) => {
       if (result.result === 'success') {
@@ -155,7 +187,30 @@ const eeveePMActions = {
     });
   },
 
-  status: (request, cb) => {
+  stop: (request) => {
+    const module = request.argsArray[2];
+    moduleStop(ipc, module)
+      .then((result) => {
+        if (debug) clog.debug(result);
+        const reply = {
+          target: request.channel,
+          text: `Command: "stop ${module}" completed successfully (pid was ${result.pid})`,
+        };
+        ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
+        return;
+      })
+      .catch((err) => {
+        clog.error(err.code, err.message);
+        const reply = {
+          target: request.channel,
+          text: `Error: ${err.code}, ${err.message}`,
+        };
+        ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
+        return;
+      });
+  },
+
+  statusCallback: (request, cb) => {
     const module = request.argsArray[3];
     botStatus({ target: module }, (result) => {
       var string = 'Running modules:\n';
@@ -180,5 +235,61 @@ const eeveePMActions = {
       if (cb) cb(0);
       return 0;
     });
+  },
+
+  status: (request) => {
+    if (debug) clog.debug(request);
+    if (request.argsArray[2]) {
+      const module = request.argsArray[2];
+      moduleStatus(ipc, module)
+        .then((moduleStatus) => {
+          console.log(`Command: "status ${module}" completed successfully. Module information:`);
+          const outputTable = new AsciiTable();
+          outputTable.setHeading('module name', 'status', 'pid', 'pid file');
+          outputTable.addRow(moduleStatus.ident, moduleStatus.status, moduleStatus.pid, moduleStatus.pidFileStatus);
+          const reply = {
+            target: request.channel,
+            text: outputTable.toString(),
+          };
+          if (debug) clog.debug(`Sending reply to: ${request.replyTo}.outgoingMessage`, reply);
+          ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
+          return;
+        })
+        .catch((err) => {
+          clog.error(err);
+          return 1;
+        });
+    } else {
+      botStatus(ipc)
+        .then((modules) => {
+          if (debug) clog.debug(modules);
+          console.log('Command: "status" completed successfully. Running modules:');
+          const outputTable = new AsciiTable();
+          outputTable.setHeading('module name', 'status', 'pid', 'pid file');
+          modules.forEach((module) => {
+            if (module.pid === process.pid) {
+              outputTable.addRow(`${module.ident} (this instance)`, module.status, module.pid, module.pidFileStatus);
+            } else {
+              outputTable.addRow(module.ident, module.status, module.pid, module.pidFileStatus);
+            }
+          });
+          const reply = {
+            target: request.channel,
+            text: outputTable.toString(),
+          };
+          if (debug) clog.debug(`Sending reply to: ${request.replyTo}.outgoingMessage`, reply);
+          ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
+          return;
+        })
+        .catch((err) => {
+          clog.error(err.code, err.message);
+          const reply = {
+            target: request.channel,
+            text: `Error: ${err.code}, ${err.message}`,
+          };
+          ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
+          return;
+        });
+    }
   },
 };

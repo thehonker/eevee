@@ -39,7 +39,7 @@ if (debug) clog.debug('process.argv:', process.argv);
 
 lockPidFile(moduleFullIdent);
 
-setPingListener(ipc, moduleFullIdent);
+setPingListener(ipc, moduleFullIdent, 'init');
 
 // Print every message we receive if debug is enabled
 /* Disabled for now
@@ -55,6 +55,7 @@ if (debug) {
 ipc.on('start', () => {
   if (debug) clog.debug('IPC "connected"');
   if (process.send) process.send('ready');
+  setPingListener(ipc, moduleFullIdent, 'running');
 });
 
 process.on('SIGINT', () => {

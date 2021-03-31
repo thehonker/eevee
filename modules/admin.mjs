@@ -75,7 +75,7 @@ ipc.subscribe('admin.request', (data) => {
 });
 
 const eeveePMActions = {
-  start: (request, cb) => {
+  startCallback: (request, cb) => {
     const module = request.argsArray[2];
     moduleStart({ target: module }, (result) => {
       if (result.result === 'success') {
@@ -108,6 +108,17 @@ const eeveePMActions = {
         return 1;
       }
     });
+  },
+
+  start: (request) => {
+    const module = request.argsArray[2];
+    moduleStart(ipc, module)
+      .then((result) => {
+        
+      })
+      .catch((err) => {
+
+      });
   },
 
   stop: (request, cb) => {

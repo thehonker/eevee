@@ -40,7 +40,6 @@ if (debug) clog.debug('Config', config);
 ipc.on('start', () => {
   if (debug) clog.debug('IPC "connected"');
   if (process.send) process.send('ready');
-  
 });
 
 // Handle SIGINT
@@ -129,25 +128,32 @@ function lastfm(data) {
 
   const apiUrl = `http://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&user=${query.lastfmUser}&api_key=${config.apiKey}&format=json`;
   needle.get(apiUrl, (err, response) => {
-    if (debug) clog.debug('LastFM response', response);
-    if (debug) clog.debug('Last played track', response.body.recenttracks.track[0]);
-
-    const track = response.body.recenttracks.track[0];
-    const artist = track.artist['#text'];
-    const album = track.album['#text'];
-    const title = track.name;
-
-    // eslint-disable-next-line prettier/prettier
-    var replyText = `${request.nick} is listening to: ${artist} - ${title}${( (album) ? ('(' + album + ')') : '' )}`;
-    if (request.platform === 'irc') {
-      // eslint-disable-next-line prettier/prettier
-      replyText = `${request.nick} is listening to: ${ircColor.cyan(artist)} - ${ircColor.red(title)}${( (album) ? (' (' + ircColor.brown(album) + ')') : '' )}`;
+    if (err) {
+      clog.err(err);
+      return;
     }
-    let reply = {
-      target: request.channel,
-      text: replyText,
-    };
-    if (debug) clog.debug(reply);
-    ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
+
+    if (response.body) {
+      if (debug) clog.debug('LastFM response', response);
+      if (debug) clog.debug('Last played track', response.body.recenttracks.track[0]);
+
+      const track = response.body.recenttracks.track[0];
+      const artist = track.artist['#text'];
+      const album = track.album['#text'];
+      const title = track.name;
+
+      // eslint-disable-next-line prettier/prettier
+      var replyText = `${request.nick} is listening to: ${artist} - ${title}${( (album) ? ('(' + album + ')') : '' )}`;
+      if (request.platform === 'irc') {
+        // eslint-disable-next-line prettier/prettier
+        replyText = `${request.nick} is listening to: ${ircColor.cyan(artist)} - ${ircColor.red(title)}${( (album) ? (' (' + ircColor.brown(album) + ')') : '' )}`;
+      }
+      let reply = {
+        target: request.channel,
+        text: replyText,
+      };
+      if (debug) clog.debug(reply);
+      ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
+    }
   });
 }

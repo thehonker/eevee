@@ -4,7 +4,7 @@
 // Usage: eevee [init, start, stop, restart, config, status, console, dump]
 
 const ident = 'cli';
-const debug = true;
+const debug = false;
 
 import { default as clog } from 'ee-log';
 import { default as yargs } from 'yargs';
@@ -117,7 +117,8 @@ ipc.on('start', () => {
 function start(argv) {
   moduleStart(ipc, argv.module)
     .then((result) => {
-      clog.debug(result);
+      if (debug) clog.debug(result);
+      console.log(`Command "start ${result.ident}" completed successfully. (pid is ${result.pid})`);
       exit(ident, 0);
       return 0;
     })
@@ -133,7 +134,8 @@ function stop(argv) {
   if (argv.module) {
     moduleStop(ipc, argv.module)
       .then((result) => {
-        clog.debug(result);
+        if (debug) clog.debug(result);
+        console.log(`Command "stop ${result.ident}" completed successfully. (pid was ${result.pid})`);
         exit(ident, 0);
         return 0;
       })
@@ -159,7 +161,7 @@ function status(argv) {
         return 0;
       })
       .catch((err) => {
-        clog.debug(err);
+        clog.error(err);
         exit(ident, 1);
         return 1;
       });
@@ -182,7 +184,7 @@ function status(argv) {
         return 0;
       })
       .catch((err) => {
-        clog.debug(err);
+        clog.error(err);
         exit(ident, 1);
         return 1;
       });
@@ -194,16 +196,28 @@ function init(argv) {
   // Get list of modules to start from init config
   const config = getConfig('init');
   if (debug) clog.debug(config);
+  console.log('Starting the following modules:');
+  console.log(config.initModules);
 
+  var runningModules = [];
   config.initModules.forEach((module) => {
-    start({ module: module }).catch((err) => {
-      clog.error(err);
-      exit(ident, 1);
-      return 1;
-    });
+    moduleStart(ipc, module)
+      .then((result) => {
+        if (debug) clog.debug(result);
+        console.log(`Command "start ${result.ident}" completed successfully. (pid is ${result.pid})`);
+        runningModules.push(result);
+        if (runningModules.length === config.initModules.length) {
+          exit(ident, 0);
+          return 0;
+        }
+        return;
+      })
+      .catch((err) => {
+        clog.error(err.code, err.message);
+        exit(ident, 1);
+        return 1;
+      });
   });
-  exit(ident, 0);
-  return 0;
 }
 
 function shutdown(argv) {
@@ -225,25 +239,30 @@ function shutdown(argv) {
       var stoppedModules = [];
       modules.forEach((module) => {
         if (module.ident != 'cli') {
-          const request = {
-            module: module.ident,
-          };
-          clog.debug(request);
-          stop(request, (result) => {
-            if (debug) clog.debug(result);
-          });
-          stoppedModules.push(module);
-          if (modules.length == stoppedModules.length) {
-            exit(ident, 0);
-            return 0;
-          }
+          // eslint-disable-next-line promise/no-nesting
+          moduleStop(ipc, module.ident)
+            .then((result) => {
+              if (debug) clog.debug(result);
+              console.log(`Command "stop ${result.ident}" completed successfully. (pid was ${result.pid})`);
+              stoppedModules.push(module);
+              if (stoppedModules.length === modules.length) {
+                exit(ident, 0);
+                return 0;
+              }
+              return 0;
+            })
+            .catch((err) => {
+              clog.error(err.code, err.message);
+              exit(ident, 1);
+              return 1;
+            });
         }
       });
       return;
     })
     .catch((err) => {
       clog.debug(err);
-      exit(ident, 0);
-      return 0;
+      exit(ident, 1);
+      return 1;
     });
 }

@@ -30,7 +30,7 @@ if (process.argv[2] === '--instance' && process.argv[3]) {
 
 lockPidFile(moduleFullIdent);
 
-setPingListener(ipc, moduleFullIdent);
+setPingListener(ipc, moduleFullIdent, 'init');
 
 const config = getConfig(moduleFullIdent);
 // Add channel list to post-connect actions
@@ -65,6 +65,7 @@ ipc.on('start', () => {
 
 client.on('registered', () => {
   if (debug) clog.debug('Client connected.');
+  setPingListener(ipc, moduleFullIdent, 'connected');
   // Execute login script
   setTimeout(() => {
     var postConnectPromise = Promise.resolve();

@@ -12,7 +12,7 @@ import {
   getGlobalConfig,
   getDirName,
   readableTime,
-  setPingListener
+  setPingListener,
 } from '../lib/common.mjs';
 
 const debug = true;
@@ -46,3 +46,7 @@ ipc.on('start', () => {
 process.on('SIGINT', () => {
   handleSIGINT(moduleIdent, ipc);
 });
+
+// Gather list of running modules
+// Ping them every minute or whatever
+// If they don't respond, force a restart

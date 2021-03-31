@@ -197,6 +197,69 @@ const eeveePMActions = {
           text: `Command: "stop ${module}" completed successfully (pid was ${result.pid})`,
         };
         ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
+        // eslint-disable-next-line promise/no-nesting
+        moduleStart(ipc, module)
+          .then((result) => {
+            if (debug) clog.debug(result);
+            const reply = {
+              target: request.channel,
+              text: `Command: "start ${module}" completed successfully (pid is ${result.pid})`,
+            };
+            ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
+            return;
+          })
+          .catch((err) => {
+            clog.error(err);
+            var reply = null;
+            switch (err.code) {
+              case 'E_RUNNING_VALID':
+                reply = {
+                  target: request.channel,
+                  text: `Command: "start ${module}" failed: Module already running (valid pid file)`,
+                };
+                ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
+                return;
+              case 'E_RUNNING_STALE':
+                reply = {
+                  target: request.channel,
+                  text: `Command: "start ${module}" failed: Module already running (stale pid file)`,
+                };
+                ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
+                return;
+              case 'E_UNRESPONSIVE_STALE':
+                reply = {
+                  target: request.channel,
+                  text: `Command: "start ${module}" failed: Module might be running but but did not respond to to ping (manual intervention may be required)`,
+                };
+                ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
+                return;
+              default:
+                return;
+            }
+          });
+        return;
+      })
+      .catch((err) => {
+        clog.error(err.code, err.message);
+        const reply = {
+          target: request.channel,
+          text: `Error: ${err.code}, ${err.message}`,
+        };
+        ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
+        return;
+      });
+  },
+
+  restart: (request) => {
+    const module = request.argsArray[2];
+    moduleStop(ipc, module)
+      .then((result) => {
+        if (debug) clog.debug(result);
+        const reply = {
+          target: request.channel,
+          text: `Command: "stop ${module}" completed successfully (pid was ${result.pid})`,
+        };
+        ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
         return;
       })
       .catch((err) => {

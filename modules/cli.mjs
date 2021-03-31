@@ -64,11 +64,7 @@ ipc.on('start', () => {
           type: 'string',
         });
       },
-      handler: (argv) => {
-        stop(argv, (exitCode) => {
-          exit(ident, exitCode);
-        });
-      },
+      handler: stop,
     })
     // Restart a module
     .command({
@@ -80,15 +76,7 @@ ipc.on('start', () => {
           type: 'string',
         });
       },
-      handler: (argv) => {
-        stop(argv, (stopCode) => {
-          setTimeout(() => {
-            start(argv, (startCode) => {
-              exit(ident, stopCode + startCode);
-            });
-          }, 500);
-        });
-      },
+      handler: restart,
     })
     // Start the entire bot
     .command({
@@ -138,6 +126,36 @@ function stop(argv) {
         console.log(`Command "stop ${result.ident}" completed successfully. (pid was ${result.pid})`);
         exit(ident, 0);
         return 0;
+      })
+      .catch((err) => {
+        clog.error(err.code, err.message);
+        exit(ident, 1);
+        return 1;
+      });
+  }
+}
+
+function restart(argv) {
+  if (debug) clog.debug('Function restart() argv: ', argv);
+  if (argv.module) {
+    moduleStop(ipc, argv.module)
+      .then((result) => {
+        if (debug) clog.debug(result);
+        console.log(`Command "stop ${result.ident}" completed successfully. (pid was ${result.pid})`);
+        // eslint-disable-next-line promise/no-nesting
+        moduleStart(ipc, argv.module)
+          .then((result) => {
+            if (debug) clog.debug(result);
+            console.log(`Command "start ${result.ident}" completed successfully. (pid is ${result.pid})`);
+            exit(ident, 0);
+            return 0;
+          })
+          .catch((err) => {
+            clog.error(err.code, err.message);
+            exit(ident, 1);
+            return 1;
+          });
+        return;
       })
       .catch((err) => {
         clog.error(err.code, err.message);

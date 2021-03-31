@@ -229,6 +229,9 @@ ipc.subscribe('_broadcast.incomingMessage.#', (data) => {
           date: new Date().toISOString(),
           id: tell.id,
         });
+        removeTellByID.run({
+          id: tell.id,
+        });
       }
     });
   }

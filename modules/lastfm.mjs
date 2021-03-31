@@ -147,18 +147,25 @@ function lastfm(data) {
         var replyText = `${request.nick} is listening to: ${artist} - ${title}${( (album) ? ('(' + album + ')') : '' )}`;
         if (request.platform === 'irc') {
           // eslint-disable-next-line prettier/prettier
-          replyText = `${request.nick} is listening to: ${ircColor.cyan(artist)} - ${ircColor.red(title)}${( (album) ? (' (' + ircColor.brown(album) + ')') : '' )}`;
+          replyText = `${request.nick} is listening to: ${ircColor.cyan(artist)} - ${ircColor.red(title)}${( (album) ? (' (' + ircColor.green(album) + ')') : '' )}`;
         }
-        let reply = {
+        const reply = {
           target: request.channel,
           text: replyText,
+        };
+        if (debug) clog.debug(reply);
+        ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
+      } else {
+        const reply = {
+          target: request.channel,
+          text: 'Error fetching lastfm data',
         };
         if (debug) clog.debug(reply);
         ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
       }
     });
   } else {
-    let reply = {
+    const reply = {
       target: request.channel,
       text: 'You need to set a lastfm username',
     };

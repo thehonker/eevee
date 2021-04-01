@@ -7,6 +7,7 @@ import { default as clog } from 'ee-log';
 import { default as ircColor } from 'irc-colors';
 import { default as sqlite3 } from 'better-sqlite3';
 import { default as needle } from 'needle';
+import { default as imgur } from 'imgur';
 
 import { ipc, lockPidFile, handleSIGINT, getConfig, getDirName, setPingListener } from '../lib/common.mjs';
 
@@ -104,6 +105,10 @@ ipc.subscribe('fm.request', (data) => {
   lastfm(data);
 });
 
+ipc.subscribe('lastfm3x3.request', (data) => {
+  lastfm3x3(data);
+});
+
 function lastfm(data) {
   const request = JSON.parse(data);
   if (debug) clog.debug('lastfm request received:', request);
@@ -164,6 +169,41 @@ function lastfm(data) {
         ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
       }
     });
+  } else {
+    const reply = {
+      target: request.channel,
+      text: 'You need to set a lastfm username',
+    };
+    if (debug) clog.debug(reply);
+    ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
+  }
+}
+
+function lastfm3x3(data) {
+  const request = JSON.parse(data);
+  if (debug) clog.debug('lastfm request received:', request);
+
+  const query = findLastfmUser.get({ nick: request.nick });
+
+  if (query) {
+    const tapMusicUrl = `https://tapmusic.net/lastfm/collage.php?user=${query.lastfmUser}&type=7day&size=3x3&caption=true`;
+    if (debug) clog.debug(tapMusicUrl);
+
+    imgur
+      .uploadUrl(tapMusicUrl)
+      .then((response) => {
+        const reply = {
+          target: request.channel,
+          text: response.link,
+        };
+        if (debug) clog.debug(reply);
+        ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
+        return;
+      })
+      .catch((err) => {
+        clog.debug(err);
+        return;
+      });
   } else {
     const reply = {
       target: request.channel,

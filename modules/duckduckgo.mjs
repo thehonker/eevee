@@ -26,7 +26,7 @@ process.on('SIGINT', () => {
   handleSIGINT(ident, ipc);
 });
 
-ipc.subscribe('ddginstant.request', ddginstant);
+ipc.subscribe('ddg.request', ddginstant);
 
 function ddginstant(data) {
   setPingListener(ipc, ident, 'running');
@@ -41,11 +41,47 @@ function ddginstant(data) {
   if (debug) clog.debug(request);
 
   ddg.query(request.args, options, (err, response) => {
+    if (err) {
+      setPingListener(ipc, ident, 'error');
+      clog.error(err);
+      const reply = {
+        target: request.channel,
+        text: `err.message [ ${err.code} ]`,
+      };
+      if (debug) clog.debug(`Sending reply to: ${request.replyTo}.outgoingMessage`, reply);
+      ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
+      setPingListener(ipc, ident, 'listening');
+    }
     if (debug) clog.debug('ddg response received:', response);
-    const reply = {
-      target: request.channel,
-      text: `${response.AbstractURL} [ ${response.Heading} - ${response.AbstractSource} ]`,
-    };
+    var reply = null;
+    // Gross, I know...
+    if (response.Heading && response.AbstractSource) {
+      reply = {
+        target: request.channel,
+        text: `${response.AbstractURL} [ ${response.Heading} - ${response.AbstractSource} ]`,
+      };
+    } else if (!response.Heading && response.AbstractSource) {
+      reply = {
+        target: request.channel,
+        text: `${response.AbstractURL} [ ${response.AbstractSource} ]`,
+      };
+    } else if (response.Heading && !response.AbstractSource) {
+      reply = {
+        target: request.channel,
+        text: `${response.AbstractURL} [ ${response.Heading} ]`,
+      };
+    } else if (!response.Heading && !response.AbstractSource) {
+      reply = {
+        target: request.channel,
+        text: `${response.AbstractURL}`,
+      };
+    } else {
+      reply = {
+        target: request.channel,
+        text: `${response.AbstractURL}`,
+      };
+    }
+
     if (debug) clog.debug(`Sending reply to: ${request.replyTo}.outgoingMessage`, reply);
     ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
     setPingListener(ipc, ident, 'listening');

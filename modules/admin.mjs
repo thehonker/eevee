@@ -45,11 +45,7 @@ ipc.subscribe('admin.request', (data) => {
           eeveePMActions.stop(request);
           break;
         case 'restart':
-          eeveePMActions.stop(request, () => {
-            setTimeout(() => {
-              eeveePMActions.start(request);
-            }, 1000);
-          });
+          eeveePMActions.restart(request);
           break;
         case 'status':
           eeveePMActions.status(request);
@@ -118,7 +114,7 @@ const eeveePMActions = {
       });
   },
 
-  stop: (request) => {
+  restart: (request) => {
     const module = request.argsArray[2];
     moduleStop(ipc, module)
       .then((result) => {
@@ -181,7 +177,7 @@ const eeveePMActions = {
       });
   },
 
-  restart: (request) => {
+  stop: (request) => {
     const module = request.argsArray[2];
     moduleStop(ipc, module)
       .then((result) => {

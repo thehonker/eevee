@@ -40,10 +40,10 @@ function ddginstant(data) {
   if (debug) clog.debug(request);
 
   ddg.query(request.args, options, (err, response) => {
-    if (debug) clog.debug('ddg reponse received:', response);
+    if (debug) clog.debug('ddg response received:', response);
     const reply = {
       target: request.channel,
-      text: `${response.Answer} [${response.AbstractURL}]`,
+      text: `${response.AbstractURL} [${response.AbstractSource} - ${response.Heading}]`,
     };
     if (debug) clog.debug(`Sending reply to: ${request.replyTo}.outgoingMessage`, reply);
     ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));

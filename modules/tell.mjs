@@ -102,10 +102,11 @@ const findTellByID = db.prepare(`SELECT * FROM '${tableName}' WHERE id = @id`);
 const markAsDelivered = db.prepare(`UPDATE '${tableName}' SET dateDelivered = @date, delivered = 1 WHERE id = @id`);
 const removeTellByID = db.prepare(`DELETE FROM '${tableName}' WHERE id = @id`);
 
-setPingListener(ipc, moduleFullIdent, 'running');
+setPingListener(ipc, moduleFullIdent, 'listening');
 
 // Handle incoming tell
 ipc.subscribe('tell.request', (data) => {
+  setPingListener(ipc, moduleFullIdent, 'running');
   const request = JSON.parse(data);
   if (debug) clog.debug('Tell request received', request);
 
@@ -156,9 +157,11 @@ ipc.subscribe('tell.request', (data) => {
   };
   if (debug) clog.debug('Sending ack message', reply);
   ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
+  setPingListener(ipc, moduleFullIdent, 'listening');
 });
 
 ipc.subscribe('rmtell.request', (data) => {
+  setPingListener(ipc, moduleFullIdent, 'running');
   const request = JSON.parse(data);
   if (debug) clog.debug('rmtell request received', request);
   const id = request.args.split(' ')[0];
@@ -200,11 +203,13 @@ ipc.subscribe('rmtell.request', (data) => {
       text: replyText,
     };
     ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
+    setPingListener(ipc, moduleFullIdent, 'listening');
   }
 });
 
 // Listen for when people say things
 ipc.subscribe('_broadcast.incomingMessage.#', (data) => {
+  setPingListener(ipc, moduleFullIdent, 'running');
   const message = JSON.parse(data);
   if (debug) clog.debug(message);
   if (debug) clog.debug(`Checking if user ${message.nick} has any tells`);
@@ -229,6 +234,7 @@ ipc.subscribe('_broadcast.incomingMessage.#', (data) => {
           date: new Date().toISOString(),
           id: tell.id,
         });
+        setPingListener(ipc, moduleFullIdent, 'listening');
       }
     });
   }

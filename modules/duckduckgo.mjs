@@ -1,13 +1,13 @@
 'use strict';
 
-// Echo module. Parrots back what it receives
+// Duckduckgo module. Replies with answers as returned by ddg instant answer api
 
 const ident = 'duckduckgo';
 const debug = true;
 
 import { default as clog } from 'ee-log';
 import { default as ddg } from 'ddg';
-// import { default as ircColor } from 'irc-colors';
+// Make-esLint-Happy import { default as ircColor } from 'irc-colors';
 
 import { ipc, lockPidFile, handleSIGINT, setPingListener } from '../lib/common.mjs';
 
@@ -19,7 +19,7 @@ setPingListener(ipc, ident, 'init');
 ipc.on('start', () => {
   if (debug) clog.debug('IPC "connected"');
   if (process.send) process.send('ready');
-  setPingListener(ipc, ident, 'running');
+  setPingListener(ipc, ident, 'listening');
 });
 
 process.on('SIGINT', () => {
@@ -29,6 +29,7 @@ process.on('SIGINT', () => {
 ipc.subscribe('ddginstant.request', ddginstant);
 
 function ddginstant(data) {
+  setPingListener(ipc, ident, 'running');
   const request = JSON.parse(data);
   const options = {
     useragent: 'eevee irc bot',
@@ -43,9 +44,10 @@ function ddginstant(data) {
     if (debug) clog.debug('ddg response received:', response);
     const reply = {
       target: request.channel,
-      text: `${response.AbstractURL} [${response.AbstractSource} - ${response.Heading}]`,
+      text: `${response.AbstractURL} [ ${response.Heading} - ${response.AbstractSource} ]`,
     };
     if (debug) clog.debug(`Sending reply to: ${request.replyTo}.outgoingMessage`, reply);
     ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
+    setPingListener(ipc, ident, 'listening');
   });
 }

@@ -1,0 +1,13 @@
+{
+  errorAction: 'die',
+  dbParameters: {
+    readonly: false,
+    fileMustExist: false,
+    timeout: 5000,
+    inMemory: false,
+    verbose: null, // Needs to be a function passed
+  },
+  dbFilename: 'weather.sqlite', // Will have ../db/ prepended to it
+  lastSeenTimeout: 300, // Seconds
+  apiKey: '<key>',
+}

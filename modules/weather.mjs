@@ -61,11 +61,12 @@ try {
   const createTableString = `
     CREATE TABLE IF NOT EXISTS '${tableName}' (
       'nick' varchar(255) PRIMARY KEY,
-      'dateSet' timestamp,
+      'dateSet' varchar(255),
       'locationSearch' varchar(255),
       'zipCode' varchar(255),
-      'lat' float,
-      'lon' float,
+      'units' character(20),
+      'lat' real,
+      'lon' real,
       'mapLayer' varchar(255),
       'mapZoom' integer,
       'mapTileStartX' integer,
@@ -141,58 +142,135 @@ function weather(data) {
   if (debug) clog.debug('weather request received', request);
   // If they specified a location to search, look up the lat/lon
   if (request.args.split(' ')[0] != '') {
-    createUpdateWeatherLocation(request);
-  }
-  const userData = dbFindWeatherUser.get({ nick: request.nick });
-  if (userData) {
-    if (debug) clog.debug('Weather User found:', userData);
+    createUpdateWeatherLocation(request.args.split(' ')[0], request.nick)
+      .then((dbInsertResult) => {
+        if (debug) clog.debug(dbInsertResult);
+        const userData = dbFindWeatherUser.get({ nick: request.nick });
+        if (userData) {
+          if (debug) clog.debug('Weather User found:', userData);
+          // eslint-disable-next-line promise/no-nesting
+          getCurrentWeatherLatLon(userData.lat, userData.lon)
+            .then((weather) => {
+              if (debug) clog.debug(weather);
+              var string = `${weather.weather[0].description} - ${weather.main.temp}degK - ${weather.main.humidity}% humidity`;
+              const reply = {
+                target: request.channel,
+                text: string,
+              };
+              if (debug) clog.debug(reply);
+              ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
+              return;
+            })
+            .catch((err) => {
+              clog.error(err);
+              return;
+            });
+        }
+        const reply = {
+          target: request.channel,
+          text: 'You need to set a weather location',
+        };
+        if (debug) clog.debug(reply);
+        ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
+        return;
+      })
+      .catch((err) => {
+        clog.error(err);
+        return;
+      });
   } else {
-    const reply = {
-      target: request.channel,
-      text: 'You need to set a weather location',
-    };
-    if (debug) clog.debug(reply);
-    ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
+    const userData = dbFindWeatherUser.get({ nick: request.nick });
+    if (userData) {
+      if (debug) clog.debug('Weather User found:', userData);
+      // eslint-disable-next-line promise/no-nesting
+      getCurrentWeatherLatLon(userData.lat, userData.lon)
+        .then((weather) => {
+          if (debug) clog.debug(weather);
+          var string = `${weather.weather[0].description} - ${weather.main.temp}degK - ${weather.main.humidity}% humidity`;
+          const reply = {
+            target: request.channel,
+            text: string,
+          };
+          if (debug) clog.debug(reply);
+          ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
+          return;
+        })
+        .catch((err) => {
+          clog.error(err);
+          return;
+        });
+      return;
+    } else {
+      const reply = {
+        target: request.channel,
+        text: 'You need to set a weather location',
+      };
+      if (debug) clog.debug(reply);
+      ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
+      return;
+    }
   }
 }
 
 // Helper functions
 
-function createUpdateWeatherLocation(request) {
-  const locationSearch = request.args.split(' ')[0];
-  const locationApiUrl = `http://api.openweathermap.org/geo/1.0/direct?q=${locationSearch}&limit=1&appid=${config.apiKey}`;
-  if (debug) clog.debug(locationApiUrl);
-  needle.get(locationApiUrl, (err, response) => {
-    if (err) {
-      clog.err(err);
-      return;
-    }
-    if (response.body) {
-      if (debug) clog.debug('locationApi response', response.body);
-      const insert = {
-        nick: request.nick,
-        dateSet: new Date().toISOString(),
-        locationSearch: locationSearch,
-        lat: response.body[0].lat,
-        lon: response.body[0].lon,
-      };
-      dbSetUpdateWeatherLocation.run(insert);
-    } else {
-      const reply = {
-        target: request.channel,
-        text: 'Error fetching location data',
-      };
-      if (debug) clog.debug(reply);
-      ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
-    }
+function createUpdateWeatherLocation(locationSearch, nick) {
+  return new Promise((resolve, reject) => {
+    const locationApiUrl = `http://api.openweathermap.org/geo/1.0/direct?q=${locationSearch}&limit=1&appid=${config.apiKey}`;
+    if (debug) clog.debug(locationApiUrl);
+    needle.get(locationApiUrl, (err, response) => {
+      if (err) {
+        clog.error(err);
+        return reject(err);
+      }
+      if (response.body) {
+        if (debug) clog.debug('locationApi response', response.body);
+        const insert = {
+          nick: nick,
+          dateSet: new Date().toISOString(),
+          locationSearch: locationSearch,
+          lat: response.body[0].lat,
+          lon: response.body[0].lon,
+        };
+        const dbInsertResult = dbSetUpdateWeatherLocation.run(insert);
+        if (debug) clog.debug(dbInsertResult);
+        return resolve(dbInsertResult);
+      } else {
+        let err = new Error('Error fetching location data');
+        err.code = 'E_API_CALL_FAILED';
+        clog.error(err);
+        return reject(err);
+      }
+    });
+  });
+}
+
+function getCurrentWeatherLatLon(lat, lon) {
+  return new Promise((resolve, reject) => {
+    const weatherApiUrl = `http://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&units=standard&appid=${config.apiKey}`;
+    if (debug) clog.debug(weatherApiUrl);
+    needle.get(weatherApiUrl, (err, response) => {
+      if (err) {
+        clog.error(err);
+        return reject(err);
+      }
+      if (response.body) {
+        return resolve(response.body);
+      } else {
+        let err = new Error('Error fetching current weather data');
+        err.code = 'E_API_CALL_FAILED';
+        clog.error(err);
+        return reject(err);
+      }
+    });
   });
 }
 
 function latLonToTileCoords(lon, lat, zoom) {
   const lat_rad = deg2rad(lat);
-  const n = 2 ^ zoom;
+  const n = 2 ** zoom;
   const x = n * ((lon + 180) / 360);
-  const y = 1 - (mathjs.asin(mathjs.tan(lat_rad)) / mathjs.pi / 2) * n;
+  const y = n * ((1 - mathjs.asin(mathjs.tan(lat_rad)) / mathjs.pi) * 2 ** (zoom - 1));
   clog.debug(lon, lat, lat_rad, zoom, n, x, y);
   return {
     x: x,

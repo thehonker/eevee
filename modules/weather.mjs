@@ -165,6 +165,7 @@ function weather(data) {
               clog.error(err);
               return;
             });
+          return;
         }
         const reply = {
           target: request.channel,
@@ -213,7 +214,6 @@ function weather(data) {
 }
 
 // Helper functions
-
 function createUpdateWeatherLocation(locationSearch, nick) {
   return new Promise((resolve, reject) => {
     const locationApiUrl = `http://api.openweathermap.org/geo/1.0/direct?q=${locationSearch}&limit=1&appid=${config.apiKey}`;

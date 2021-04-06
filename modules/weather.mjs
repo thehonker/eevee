@@ -280,8 +280,6 @@ function latLonToTileCoords(lon, lat, zoom) {
   x = x * n;
   y = y * n;
 
-  x = mathjs.round(x);
-  y = mathjs.round(y);
   clog.debug(lon, lat, x, y, n);
   return {
     x: x,

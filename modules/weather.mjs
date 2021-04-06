@@ -267,11 +267,22 @@ function getCurrentWeatherLatLon(lat, lon) {
 }
 
 function latLonToTileCoords(lon, lat, zoom) {
-  const lat_rad = deg2rad(lat);
-  const n = 2 ** zoom;
-  const x = n * ((lon + 180) / 360);
-  const y = n * ((1 - mathjs.asin(mathjs.tan(lat_rad)) / mathjs.pi) * 2 ** (zoom - 1));
-  clog.debug(lon, lat, lat_rad, zoom, n, x, y);
+  var x = deg2rad(lat);
+  var y = deg2rad(lon);
+
+  y = mathjs.asinh(mathjs.tan(y));
+
+  x = (1 + (x / mathjs.pi)) / 2;
+  y = (1 - (y / mathjs.pi)) / 2;
+
+  var n = 2 ** zoom;
+
+  x = x * n;
+  y = y * n;
+
+  x = mathjs.round(x);
+  y = mathjs.round(y);
+  clog.debug(lon, lat, x, y, n);
   return {
     x: x,
     y: y,

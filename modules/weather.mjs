@@ -152,7 +152,10 @@ function weather(request) {
     getCurrentWeatherLatLon(userData.lat, userData.lon)
       .then((weather) => {
         if (debug) clog.debug(weather);
-        var string = `${weather.weather[0].description} - ${weather.main.temp}degK - ${weather.main.humidity}% humidity`;
+        var string = '';
+        const tempString = formatTempString(weather.main.temp, userData.units, request.platform);
+        string = `${weather.weather[0].description} - ${tempString} - ${weather.main.humidity}% humidity`;
+        if (debug) console.log(string);
         const reply = {
           target: request.channel,
           text: string,
@@ -359,14 +362,61 @@ function deg2rad(degrees) {
 }
 
 function kelvin2celsius(degrees) {
-  degrees = Number.parseFloat(degrees);
+  degrees = Number.parseInt(degrees);
   const degC = degrees - 273.15;
-  return degC;
+  return Number.parseInt(degC);
 }
 
 function kelvin2fahrenheit(degrees) {
-  degrees = Number.parseFloat(degrees);
+  degrees = Number.parseInt(degrees);
   const degC = kelvin2celsius(degrees);
   const degF = degC * 1.8 + 32;
-  return degF;
+  return Number.parseInt(degF);
+}
+
+function formatTempString(degK, units, platform) {
+  var string = '';
+  if (units === 'C') {
+    const degC = kelvin2celsius(degK);
+    if (platform === 'irc') {
+      switch (true) {
+        case degC <= 0:
+          string = `${ircColor.blue(degC)}°C`;
+          break;
+        case 0 < degC <= 30:
+          string = `${ircColor.green(degC)}°C`;
+          break;
+        case 30 < degC:
+          string = `${ircColor.red(degC)}°C`;
+          break;
+        default:
+          string = `${degC}°C`;
+          break;
+      }
+    }
+  } else if (units === 'K') {
+    // What kind of nerd wants temp in kelvin?
+    string = `${degK}°K`;
+  } else {
+    const degF = kelvin2fahrenheit(degK);
+    string = `${degF}°F`;
+    if (platform === 'irc') {
+      switch (true) {
+        case degF <= 32:
+          string = `${ircColor.blue(degF)}°F`;
+          break;
+        case 32 < degF <= 85:
+          string = `${ircColor.green(degF)}°F`;
+          break;
+        case 85 < degF:
+          string = `${ircColor.red(degF)}°F`;
+          break;
+        default:
+          string = `${degF}°F`;
+          break;
+      }
+    }
+  }
+  if (debug) console.log(string);
+  return string;
 }

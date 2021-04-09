@@ -121,25 +121,65 @@ const dbSetUpdateWeatherLocation = db.prepare(
 );
 
 // IPC Listeners
-ipc.subscribe('weather.request', weather);
-
-ipc.subscribe('weathermap.request', (data) => {
-  const request = JSON.parse(data);
-  if (debug) clog.debug('weathermap request received:', request);
-  const args = request.args.split(' ');
-  const result = latLonToTileCoords(args[0], args[1], args[2]);
-  const reply = {
-    target: request.channel,
-    text: JSON.stringify(result),
-  };
-  if (debug) clog.debug(`Sending reply to: ${request.replyTo}.outgoingMessage`, reply);
-  ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
-});
-
-// Primary functions
-function weather(data) {
+ipc.subscribe('weather.request', (data) => {
   const request = JSON.parse(data);
   if (debug) clog.debug('weather request received', request);
+
+  if (request.args.split(' ')[0] != '') {
+    createUpdateWeatherLocation(request.args.split(' ')[0], request.nick)
+      .then((dbInsertResult) => {
+        if (debug) clog.debug(dbInsertResult);
+        weather(request);
+        return;
+      })
+      .catch((err) => {
+        clog.error(err);
+      });
+  } else {
+    weather(request);
+    return;
+  }
+});
+
+ipc.subscribe('weathermap.request', weatherMap);
+
+// Primary functions
+function weather(request) {
+  const userData = dbFindWeatherUser.get({ nick: request.nick });
+  if (userData) {
+    if (debug) clog.debug('Weather User found:', userData);
+    // eslint-disable-next-line promise/no-nesting
+    getCurrentWeatherLatLon(userData.lat, userData.lon)
+      .then((weather) => {
+        if (debug) clog.debug(weather);
+        var string = `${weather.weather[0].description} - ${weather.main.temp}degK - ${weather.main.humidity}% humidity`;
+        const reply = {
+          target: request.channel,
+          text: string,
+        };
+        if (debug) clog.debug(reply);
+        ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
+        return;
+      })
+      .catch((err) => {
+        clog.error(err);
+        return;
+      });
+    return;
+  } else {
+    const reply = {
+      target: request.channel,
+      text: 'You need to set a weather location',
+    };
+    if (debug) clog.debug(reply);
+    ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
+    return;
+  }
+}
+
+function weatherMap(data) {
+  const request = JSON.parse(data);
+  if (debug) clog.debug('WeatherMap request received:', request);
   // If they specified a location to search, look up the lat/lon
   if (request.args.split(' ')[0] != '') {
     createUpdateWeatherLocation(request.args.split(' ')[0], request.nick)
@@ -149,30 +189,34 @@ function weather(data) {
         if (userData) {
           if (debug) clog.debug('Weather User found:', userData);
           // eslint-disable-next-line promise/no-nesting
-          getCurrentWeatherLatLon(userData.lat, userData.lon)
-            .then((weather) => {
-              if (debug) clog.debug(weather);
-              var string = `${weather.weather[0].description} - ${weather.main.temp}degK - ${weather.main.humidity}% humidity`;
+          getWeatherMapLatLon(userData.lat, userData.lon, 4)
+            .then((url) => {
               const reply = {
                 target: request.channel,
-                text: string,
+                text: url,
               };
               if (debug) clog.debug(reply);
               ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
               return;
             })
             .catch((err) => {
-              clog.error(err);
+              const reply = {
+                target: request.channel,
+                text: `Error fetching weather map: ${err.code}`,
+              };
+              if (debug) clog.debug(reply);
+              ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
               return;
             });
+        } else {
+          const reply = {
+            target: request.channel,
+            text: 'You need to set a weather location',
+          };
+          if (debug) clog.debug(reply);
+          ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
           return;
         }
-        const reply = {
-          target: request.channel,
-          text: 'You need to set a weather location',
-        };
-        if (debug) clog.debug(reply);
-        ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
         return;
       })
       .catch((err) => {
@@ -183,24 +227,6 @@ function weather(data) {
     const userData = dbFindWeatherUser.get({ nick: request.nick });
     if (userData) {
       if (debug) clog.debug('Weather User found:', userData);
-      // eslint-disable-next-line promise/no-nesting
-      getCurrentWeatherLatLon(userData.lat, userData.lon)
-        .then((weather) => {
-          if (debug) clog.debug(weather);
-          var string = `${weather.weather[0].description} - ${weather.main.temp}degK - ${weather.main.humidity}% humidity`;
-          const reply = {
-            target: request.channel,
-            text: string,
-          };
-          if (debug) clog.debug(reply);
-          ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
-          return;
-        })
-        .catch((err) => {
-          clog.error(err);
-          return;
-        });
-      return;
     } else {
       const reply = {
         target: request.channel,
@@ -266,13 +292,51 @@ function getCurrentWeatherLatLon(lat, lon) {
   });
 }
 
-function latLonToTileCoords(lon, lat, zoom) {
-  var x = deg2rad(lat);
-  var y = deg2rad(lon);
+function getWeatherMapLatLon(lat, lon, zoom) {
+  return new Promise((resolve, reject) => {
+    const tileCoords = latLonToTileCoords(lat, lon, zoom);
+    var x = mathjs.round(tileCoords.x);
+    var y = mathjs.round(tileCoords.y);
+    if (debug) clog.debug('tile coords', x, y);
+    const coordinateMatrix = [
+      // eslint-disable-next-line prettier/prettier
+      [x--, y++], [x, y++], [x++, y++],
+      // eslint-disable-next-line prettier/prettier
+      [x--, y],   [x, y],   [x++, y],
+      // eslint-disable-next-line prettier/prettier
+      [x--, y--], [x, y--], [x++, y--],
+    ];
+    var imageMatrix = [];
+    for (let i = 0; i < 9; i++) {
+      // eslint-disable-next-line security/detect-object-injection
+      if (debug) clog.debug(`requesting image at [${coordinateMatrix[i][0]}, ${coordinateMatrix[i][1]}]`);
+      // eslint-disable-next-line security/detect-object-injection
+      const openWeatherMapTileApiUrl = `https://tile.openweathermap.org/map/temp_new/${zoom}/${coordinateMatrix[i][0]}/${coordinateMatrix[i][1]}.png?appid=${config.apiKey}`;
+      if (debug) clog.debug(openWeatherMapTileApiUrl);
+      needle.get(openWeatherMapTileApiUrl, (err, response) => {
+        if (err) {
+          clog.error(err);
+          return reject(err);
+        }
+        if (debug) clog.debug(response.body);
+        // eslint-disable-next-line security/detect-object-injection
+        imageMatrix[i] = response.body;
+      });
+    }
+    clog.debug(imageMatrix);
+    return resolve('images requested');
+  });
+}
+
+function latLonToTileCoords(lat, lon, zoom) {
+  var x = deg2rad(lon);
+  var y = deg2rad(lat);
 
   y = mathjs.asinh(mathjs.tan(y));
 
+  // eslint-disable-next-line prettier/prettier
   x = (1 + (x / mathjs.pi)) / 2;
+  // eslint-disable-next-line prettier/prettier
   y = (1 - (y / mathjs.pi)) / 2;
 
   var n = 2 ** zoom;
@@ -292,4 +356,17 @@ function deg2rad(degrees) {
   const rad = degrees * (pi / 180);
   clog.debug(degrees, rad);
   return rad;
+}
+
+function kelvin2celsius(degrees) {
+  degrees = Number.parseFloat(degrees);
+  const degC = degrees - 273.15;
+  return degC;
+}
+
+function kelvin2fahrenheit(degrees) {
+  degrees = Number.parseFloat(degrees);
+  const degC = kelvin2celsius(degrees);
+  const degF = degC * 1.8 + 32;
+  return degF;
 }

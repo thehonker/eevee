@@ -154,7 +154,12 @@ function weather(request) {
         if (debug) clog.debug(weather);
         var string = '';
         const tempString = formatTempString(weather.main.temp, userData.units, request.platform);
-        string = `${weather.weather[0].description} - ${tempString} - ${weather.main.humidity}% humidity`;
+        const descriptionString = formatDescriptionString(
+          weather.weather[0].description,
+          weather.weather[0].id,
+          request.platform,
+        );
+        string = `${descriptionString} - ${tempString} - ${weather.main.humidity}% humidity`;
         if (debug) console.log(string);
         const reply = {
           target: request.channel,
@@ -428,10 +433,32 @@ function formatTempString(degK, units, platform) {
   return string;
 }
 
+// Code = weather.weather[0].id
 function formatDescriptionString(description, code, platform) {
   var string = '';
   if (platform === 'irc') {
     switch (true) {
+      case 200 <= code <= 232: // Thunderstorm
+        string = `${ircColor.navy(description)}`;
+        break;
+      case 300 <= code <= 321: // Drizzle
+        string = `${ircColor.teal(description)}`;
+        break;
+      case 500 <= code <= 531: // Rain
+        string = `${ircColor.blue(description)}`;
+        break;
+      case 600 <= code <= 622: // Snow
+        string = `${ircColor.silver(description)}`;
+        break;
+      case 700 <= code <= 781: // Atmosphere
+        string = `${ircColor.gray(description)}`;
+        break;
+      case 800 <= code <= 800: // Clear
+        string = `${ircColor.cyan(description)}`;
+        break;
+      case 801 <= code <= 804: // Clouds
+        string = `${ircColor.gray(description)}`;
+        break;
       default:
         string = description;
         break;

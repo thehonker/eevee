@@ -442,9 +442,13 @@ function formatTempString(degK, units, platform) {
 
 // Code = weather.weather[0].id
 function formatDescriptionString(description, code, platform) {
+  if (debug) clog.debug('descr, code', description, code);
   var string = '';
   if (platform === 'irc') {
     switch (true) {
+      case code == 800: // Clear
+        string = ircColor.green(description);
+        break;
       case 200 <= code <= 232: // Thunderstorm
         string = ircColor.navy(description);
         break;
@@ -459,9 +463,6 @@ function formatDescriptionString(description, code, platform) {
         break;
       case 700 <= code <= 781: // Atmosphere
         string = ircColor.gray(description);
-        break;
-      case 800 <= code <= 800: // Clear
-        string = ircColor.cyan(description);
         break;
       case 801 <= code <= 804: // Clouds
         string = ircColor.gray(description);
@@ -505,9 +506,6 @@ function formatWindString(speed, gust, degrees, units, platform) {
   var speedArray = [speed];
   if (gust) {
     speedArray[1] = gust;
-    clog.debug('yes gust');
-  } else {
-    clog.debug('no gust');
   }
   if (units === 'F') {
     if (platform === 'irc') {

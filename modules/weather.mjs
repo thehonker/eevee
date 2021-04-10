@@ -394,6 +394,10 @@ function kelvin2fahrenheit(degrees) {
   return Number.parseInt(degF);
 }
 
+function mps2mph(speed) {
+  return (((speed * 3600) / 1610.3) * 1000) / 1000;
+}
+
 function formatTempString(degK, units, platform) {
   var string = '';
   if (units === 'C') {
@@ -443,6 +447,7 @@ function formatTempString(degK, units, platform) {
 // Code = weather.weather[0].id
 function formatDescriptionString(description, code, platform) {
   if (debug) clog.debug('descr, code', description, code);
+  code = Number.parseInt(code);
   var string = '';
   if (platform === 'irc') {
     switch (true) {
@@ -472,7 +477,6 @@ function formatDescriptionString(description, code, platform) {
         break;
     }
   }
-  if (debug) console.log(string);
   return string;
 }
 
@@ -497,19 +501,47 @@ function formatHumidityString(humidity, platform) {
         break;
     }
   }
-  if (debug) console.log(string);
   return string;
 }
 
 function formatWindString(speed, gust, degrees, units, platform) {
-  var string = `${speed}m/s (${gust}m/s gust) - ${degrees}°`;
+  var string = '';
+  if (debug) clog.debug(speed, gust, degrees, units, platform);
   var speedArray = [speed];
   if (gust) {
     speedArray[1] = gust;
   }
-  if (units === 'F') {
+  if (units === 'C') {
     if (platform === 'irc') {
-      for (let i = 0; i <= speedArray.length; i++) {
+      for (let i = 0; i < speedArray.length; i++) {
+        switch (true) {
+          // eslint-disable-next-line security/detect-object-injection
+          case speedArray[i] <= 10:
+            // eslint-disable-next-line security/detect-object-injection
+            speedArray[i] = ircColor.green(`${speedArray[i]}m/s`);
+            break;
+          // eslint-disable-next-line security/detect-object-injection
+          case 10 <= speedArray[i] <= 20:
+            // eslint-disable-next-line security/detect-object-injection
+            speedArray[i] = ircColor.blue(`${speedArray[i]}m/s`);
+            break;
+          // eslint-disable-next-line security/detect-object-injection
+          case 20 <= speedArray[i]:
+            // eslint-disable-next-line security/detect-object-injection
+            speedArray[i] = ircColor.red(`${speedArray[i]}m/s`);
+            break;
+          default:
+            // eslint-disable-next-line security/detect-object-injection
+            speedArray[i] = `${speedArray[i]}m/s`;
+            break;
+        }
+      }
+    }
+  } else {
+    if (platform === 'irc') {
+      for (let i = 0; i < speedArray.length; i++) {
+        // eslint-disable-next-line security/detect-object-injection
+        speedArray[i] = mps2mph(speedArray[i]);
         switch (true) {
           // eslint-disable-next-line security/detect-object-injection
           case speedArray[i] <= 10:
@@ -529,31 +561,6 @@ function formatWindString(speed, gust, degrees, units, platform) {
           default:
             // eslint-disable-next-line security/detect-object-injection
             speedArray[i] = `${`${speedArray[i]}mph`}`;
-            break;
-        }
-      }
-    }
-  } else {
-    if (platform === 'irc') {
-      for (let i = 0; i <= 1; i++) {
-        switch (true) {
-          case speedArray[i] <= 10:
-            // eslint-disable-next-line security/detect-object-injection
-            speedArray[i] = ircColor.green(`${speedArray[i]}m/s`);
-            break;
-          // eslint-disable-next-line security/detect-object-injection
-          case 10 <= speedArray[i] <= 20:
-            // eslint-disable-next-line security/detect-object-injection
-            speedArray[i] = ircColor.blue(`${speedArray[i]}m/s`);
-            break;
-          // eslint-disable-next-line security/detect-object-injection
-          case 20 <= speedArray[i]:
-            // eslint-disable-next-line security/detect-object-injection
-            speedArray[i] = ircColor.red(`${speedArray[i]}m/s`);
-            break;
-          default:
-            // eslint-disable-next-line security/detect-object-injection
-            speedArray[i] = `${speedArray[i]}m/s`;
             break;
         }
       }
@@ -580,7 +587,7 @@ function formatWindString(speed, gust, degrees, units, platform) {
   ];
   const windDirection = compassSector[(degrees / 22.5).toFixed(0)];
   if (gust) {
-    string = `${speedArray[0]} (${windDirection}) (${speedArray[1]}) `;
+    string = `${speedArray[0]} (${windDirection}) (${speedArray[1]})`;
   } else {
     string = `${speedArray[0]} (${windDirection})`;
   }

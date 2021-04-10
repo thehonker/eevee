@@ -395,7 +395,7 @@ function kelvin2fahrenheit(degrees) {
 }
 
 function mps2mph(speed) {
-  return (((speed * 3600) / 1610.3) * 1000) / 1000;
+  return Math.round(((speed * 3600) / 1610.3) * 1000) / 1000;
 }
 
 function formatTempString(degK, units, platform) {
@@ -408,10 +408,10 @@ function formatTempString(degK, units, platform) {
         case degC <= 0:
           string = ircColor.blue(string);
           break;
-        case 0 < degC <= 30:
+        case degC >= 0 && degC <= 30:
           string = ircColor.green(string);
           break;
-        case 30 < degC:
+        case degC > 30:
           string = ircColor.red(string);
           break;
         default:
@@ -429,10 +429,10 @@ function formatTempString(degK, units, platform) {
         case degF <= 32:
           string = ircColor.blue(string);
           break;
-        case 32 < degF <= 85:
+        case degF >= 32 && degF <= 75:
           string = ircColor.green(string);
           break;
-        case 85 < degF:
+        case degF > 75:
           string = ircColor.red(string);
           break;
         default:
@@ -451,25 +451,25 @@ function formatDescriptionString(description, code, platform) {
   var string = '';
   if (platform === 'irc') {
     switch (true) {
+      case code >= 200 && code <= 232: // Thunderstorm
+        string = ircColor.navy(description);
+        break;
+      case code >= 300 && code <= 321: // Drizzle
+        string = ircColor.teal(description);
+        break;
+      case code >= 500 && code <= 531: // Rain
+        string = ircColor.blue(description);
+        break;
+      case code >= 600 && code <= 622: // Snow
+        string = ircColor.silver(description);
+        break;
+      case code >= 700 && code <= 781: // Atmosphere
+        string = ircColor.gray(description);
+        break;
       case code == 800: // Clear
         string = ircColor.green(description);
         break;
-      case 200 <= code <= 232: // Thunderstorm
-        string = ircColor.navy(description);
-        break;
-      case 300 <= code <= 321: // Drizzle
-        string = ircColor.teal(description);
-        break;
-      case 500 <= code <= 531: // Rain
-        string = ircColor.blue(description);
-        break;
-      case 600 <= code <= 622: // Snow
-        string = ircColor.silver(description);
-        break;
-      case 700 <= code <= 781: // Atmosphere
-        string = ircColor.gray(description);
-        break;
-      case 801 <= code <= 804: // Clouds
+      case code >= 801 && code <= 804: // Clouds
         string = ircColor.gray(description);
         break;
       default:
@@ -485,17 +485,21 @@ function formatHumidityString(humidity, platform) {
   var string = `${humidity}%rh`;
   if (platform === 'irc') {
     switch (true) {
-      case humidity <= 30:
+      case humidity < 30:
         string = ircColor.gray(string);
+        clog.debug('low humidity', humidity);
         break;
-      case 31 <= humidity <= 60:
+      case humidity >= 30 && humidity < 50:
         string = ircColor.green(string);
+        clog.debug('medium humidity', humidity);
         break;
-      case 61 <= humidity <= 80:
+      case humidity >= 50 && humidity < 80:
         string = ircColor.blue(string);
+        clog.debug('high humidity', humidity);
         break;
-      case humidity <= 81:
+      case 80 <= humidity:
         string = ircColor.red(string);
+        clog.debug('really high humidity', humidity);
         break;
       default:
         break;
@@ -521,12 +525,12 @@ function formatWindString(speed, gust, degrees, units, platform) {
             speedArray[i] = ircColor.green(`${speedArray[i]}m/s`);
             break;
           // eslint-disable-next-line security/detect-object-injection
-          case 10 <= speedArray[i] <= 20:
+          case speedArray[i] >= 10 && speedArray[i] <= 20:
             // eslint-disable-next-line security/detect-object-injection
             speedArray[i] = ircColor.blue(`${speedArray[i]}m/s`);
             break;
           // eslint-disable-next-line security/detect-object-injection
-          case 20 <= speedArray[i]:
+          case speedArray[i] >= 20:
             // eslint-disable-next-line security/detect-object-injection
             speedArray[i] = ircColor.red(`${speedArray[i]}m/s`);
             break;
@@ -549,18 +553,18 @@ function formatWindString(speed, gust, degrees, units, platform) {
             speedArray[i] = ircColor.green(`${speedArray[i]}mph`);
             break;
           // eslint-disable-next-line security/detect-object-injection
-          case 10 <= speedArray[i] <= 20:
+          case speedArray[i] >= 10 && speedArray[i] <= 20:
             // eslint-disable-next-line security/detect-object-injection
             speedArray[i] = ircColor.blue(`${speedArray[i]}mph`);
             break;
           // eslint-disable-next-line security/detect-object-injection
-          case 20 <= speedArray[i]:
+          case speedArray[i] >= 20:
             // eslint-disable-next-line security/detect-object-injection
             speedArray[i] = ircColor.red(`${speedArray[i]}mph`);
             break;
           default:
             // eslint-disable-next-line security/detect-object-injection
-            speedArray[i] = `${`${speedArray[i]}mph`}`;
+            speedArray[i] = `${speedArray[i]}mph`;
             break;
         }
       }

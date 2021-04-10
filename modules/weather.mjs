@@ -9,7 +9,6 @@ import { default as ircColor } from 'irc-colors';
 import { default as sqlite3 } from 'better-sqlite3';
 import { default as needle } from 'needle';
 import { default as imgur } from 'imgur';
-import { default as proj4 } from 'proj4';
 import { default as mathjs } from 'mathjs';
 
 import { ipc, lockPidFile, handleSIGINT, getConfig, getDirName, setPingListener } from '../lib/common.mjs';

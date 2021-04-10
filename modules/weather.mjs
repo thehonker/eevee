@@ -415,13 +415,13 @@ function formatTempString(degK, units, platform) {
     if (platform === 'irc') {
       switch (true) {
         case degF <= 32:
-          string = `${ircColor.blue(degF)}°F`;
+          string = ircColor.blue(string);
           break;
         case 32 < degF <= 85:
-          string = `${ircColor.green(degF)}°F`;
+          string = ircColor.green(string);
           break;
         case 85 < degF:
-          string = `${ircColor.red(degF)}°F`;
+          string = ircColor.red(string);
           break;
         default:
           string = `${degF}°F`;
@@ -439,25 +439,25 @@ function formatDescriptionString(description, code, platform) {
   if (platform === 'irc') {
     switch (true) {
       case 200 <= code <= 232: // Thunderstorm
-        string = `${ircColor.navy(description)}`;
+        string = ircColor.navy(description);
         break;
       case 300 <= code <= 321: // Drizzle
-        string = `${ircColor.teal(description)}`;
+        string = ircColor.teal(description);
         break;
       case 500 <= code <= 531: // Rain
-        string = `${ircColor.blue(description)}`;
+        string = ircColor.blue(description);
         break;
       case 600 <= code <= 622: // Snow
-        string = `${ircColor.silver(description)}`;
+        string = ircColor.silver(description);
         break;
       case 700 <= code <= 781: // Atmosphere
-        string = `${ircColor.gray(description)}`;
+        string = ircColor.gray(description);
         break;
       case 800 <= code <= 800: // Clear
-        string = `${ircColor.cyan(description)}`;
+        string = ircColor.cyan(description);
         break;
       case 801 <= code <= 804: // Clouds
-        string = `${ircColor.gray(description)}`;
+        string = ircColor.gray(description);
         break;
       default:
         string = description;

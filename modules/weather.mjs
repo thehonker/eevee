@@ -253,17 +253,24 @@ function createUpdateWeatherLocation(locationSearch, nick) {
         return reject(err);
       }
       if (response.body) {
-        if (debug) clog.debug('locationApi response', response.body);
-        const insert = {
-          nick: nick,
-          dateSet: new Date().toISOString(),
-          locationSearch: locationSearch,
-          lat: response.body[0].lat,
-          lon: response.body[0].lon,
-        };
-        const dbInsertResult = dbSetUpdateWeatherLocation.run(insert);
-        if (debug) clog.debug(dbInsertResult);
-        return resolve(dbInsertResult);
+        if (response.body.cod == '404') {
+          let err = new Error('Location not found');
+          err.code = 'E_API_404';
+          clog.error(err);
+          return reject(err);
+        } else {
+          if (debug) clog.debug('locationApi response', response.body);
+          const insert = {
+            nick: nick,
+            dateSet: new Date().toISOString(),
+            locationSearch: locationSearch,
+            lat: response.body[0].lat,
+            lon: response.body[0].lon,
+          };
+          const dbInsertResult = dbSetUpdateWeatherLocation.run(insert);
+          if (debug) clog.debug(dbInsertResult);
+          return resolve(dbInsertResult);
+        }
       } else {
         let err = new Error('Error fetching location data');
         err.code = 'E_API_CALL_FAILED';
@@ -415,6 +422,19 @@ function formatTempString(degK, units, platform) {
           string = `${degF}°F`;
           break;
       }
+    }
+  }
+  if (debug) console.log(string);
+  return string;
+}
+
+function formatDescriptionString(description, code, platform) {
+  var string = '';
+  if (platform === 'irc') {
+    switch (true) {
+      default:
+        string = description;
+        break;
     }
   }
   if (debug) console.log(string);

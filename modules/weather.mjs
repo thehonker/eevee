@@ -159,7 +159,15 @@ function weather(request) {
           weather.weather[0].id,
           request.platform,
         );
-        string = `${descriptionString} - ${tempString} - ${weather.main.humidity}% humidity`;
+        const humidityString = formatHumidityString(weather.main.humidity, request.platform);
+        const windString = formatWindString(
+          weather.wind.speed,
+          weather.wind.gust,
+          weather.wind.deg,
+          userData.units,
+          request.platform,
+        );
+        string = `[ ${descriptionString} ][ ${tempString} ][ ${humidityString} ][ ${windString} ]`;
         if (debug) console.log(string);
         const reply = {
           target: request.channel,
@@ -390,19 +398,19 @@ function formatTempString(degK, units, platform) {
   var string = '';
   if (units === 'C') {
     const degC = kelvin2celsius(degK);
+    string = `${degC}°C`;
     if (platform === 'irc') {
       switch (true) {
         case degC <= 0:
-          string = `${ircColor.blue(degC)}°C`;
+          string = ircColor.blue(string);
           break;
         case 0 < degC <= 30:
-          string = `${ircColor.green(degC)}°C`;
+          string = ircColor.green(string);
           break;
         case 30 < degC:
-          string = `${ircColor.red(degC)}°C`;
+          string = ircColor.red(string);
           break;
         default:
-          string = `${degC}°C`;
           break;
       }
     }
@@ -424,7 +432,6 @@ function formatTempString(degK, units, platform) {
           string = ircColor.red(string);
           break;
         default:
-          string = `${degF}°F`;
           break;
       }
     }
@@ -465,5 +472,119 @@ function formatDescriptionString(description, code, platform) {
     }
   }
   if (debug) console.log(string);
+  return string;
+}
+
+function formatHumidityString(humidity, platform) {
+  humidity = Number.parseInt(humidity);
+  var string = `${humidity}%rh`;
+  if (platform === 'irc') {
+    switch (true) {
+      case humidity <= 30:
+        string = ircColor.gray(string);
+        break;
+      case 31 <= humidity <= 60:
+        string = ircColor.green(string);
+        break;
+      case 61 <= humidity <= 80:
+        string = ircColor.blue(string);
+        break;
+      case humidity <= 81:
+        string = ircColor.red(string);
+        break;
+      default:
+        break;
+    }
+  }
+  if (debug) console.log(string);
+  return string;
+}
+
+function formatWindString(speed, gust, degrees, units, platform) {
+  var string = `${speed}m/s (${gust}m/s gust) - ${degrees}°`;
+  var speedArray = [speed];
+  if (gust) {
+    speedArray[1] = gust;
+    clog.debug('yes gust');
+  } else {
+    clog.debug('no gust');
+  }
+  if (units === 'F') {
+    if (platform === 'irc') {
+      for (let i = 0; i <= speedArray.length; i++) {
+        switch (true) {
+          // eslint-disable-next-line security/detect-object-injection
+          case speedArray[i] <= 10:
+            // eslint-disable-next-line security/detect-object-injection
+            speedArray[i] = ircColor.green(`${speedArray[i]}mph`);
+            break;
+          // eslint-disable-next-line security/detect-object-injection
+          case 10 <= speedArray[i] <= 20:
+            // eslint-disable-next-line security/detect-object-injection
+            speedArray[i] = ircColor.blue(`${speedArray[i]}mph`);
+            break;
+          // eslint-disable-next-line security/detect-object-injection
+          case 20 <= speedArray[i]:
+            // eslint-disable-next-line security/detect-object-injection
+            speedArray[i] = ircColor.red(`${speedArray[i]}mph`);
+            break;
+          default:
+            // eslint-disable-next-line security/detect-object-injection
+            speedArray[i] = `${`${speedArray[i]}mph`}`;
+            break;
+        }
+      }
+    }
+  } else {
+    if (platform === 'irc') {
+      for (let i = 0; i <= 1; i++) {
+        switch (true) {
+          case speedArray[i] <= 10:
+            // eslint-disable-next-line security/detect-object-injection
+            speedArray[i] = ircColor.green(`${speedArray[i]}m/s`);
+            break;
+          // eslint-disable-next-line security/detect-object-injection
+          case 10 <= speedArray[i] <= 20:
+            // eslint-disable-next-line security/detect-object-injection
+            speedArray[i] = ircColor.blue(`${speedArray[i]}m/s`);
+            break;
+          // eslint-disable-next-line security/detect-object-injection
+          case 20 <= speedArray[i]:
+            // eslint-disable-next-line security/detect-object-injection
+            speedArray[i] = ircColor.red(`${speedArray[i]}m/s`);
+            break;
+          default:
+            // eslint-disable-next-line security/detect-object-injection
+            speedArray[i] = `${speedArray[i]}m/s`;
+            break;
+        }
+      }
+    }
+  }
+  const compassSector = [
+    'N',
+    'NNE',
+    'NE',
+    'ENE',
+    'E',
+    'ESE',
+    'SE',
+    'SSE',
+    'S',
+    'SSW',
+    'SW',
+    'WSW',
+    'W',
+    'WNW',
+    'NW',
+    'NNW',
+    'N',
+  ];
+  const windDirection = compassSector[(degrees / 22.5).toFixed(0)];
+  if (gust) {
+    string = `${speedArray[0]} (${windDirection}) (${speedArray[1]}) `;
+  } else {
+    string = `${speedArray[0]} (${windDirection})`;
+  }
   return string;
 }

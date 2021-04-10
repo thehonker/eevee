@@ -134,6 +134,13 @@ ipc.subscribe('weather.request', (data) => {
       })
       .catch((err) => {
         clog.error(err);
+        const reply = {
+          target: request.channel,
+          text: `Error setting weather location: ${err.code}`,
+        };
+        if (debug) clog.debug(reply);
+        ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
+        return;
       });
   } else {
     weather(request);
@@ -179,6 +186,12 @@ function weather(request) {
       })
       .catch((err) => {
         clog.error(err);
+        const reply = {
+          target: request.channel,
+          text: `Error fetching weather data: ${err.code}`,
+        };
+        if (debug) clog.debug(reply);
+        ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
         return;
       });
     return;
@@ -266,13 +279,18 @@ function createUpdateWeatherLocation(locationSearch, nick) {
         return reject(err);
       }
       if (response.body) {
+        if (debug) clog.debug('locationApi response', response.body);
         if (response.body.cod == '404') {
           let err = new Error('Location not found');
           err.code = 'E_API_404';
           clog.error(err);
           return reject(err);
+        } else if (response.body.length == 0) {
+          let err = new Error('Location not found');
+          err.code = 'E_API_EMPTY_RESULT';
+          clog.error(err);
+          return reject(err);
         } else {
-          if (debug) clog.debug('locationApi response', response.body);
           const insert = {
             nick: nick,
             dateSet: new Date().toISOString(),

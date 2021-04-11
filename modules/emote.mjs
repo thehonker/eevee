@@ -46,3 +46,89 @@ ipc.subscribe('dudeweed.request', (data) => {
   if (debug) clog.debug(`Sending reply to: ${request.replyTo}.outgoingMessage`, reply);
   ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
 });
+
+ipc.subscribe('downy.request', (data) => {
+  const request = JSON.parse(data);
+  const string = ".'\x1f/\x1f)";
+  const reply = {
+    target: request.channel,
+    text: string,
+  };
+  if (debug) clog.debug(`Sending reply to: ${request.replyTo}.outgoingMessage`, reply);
+  ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
+});
+
+ipc.subscribe('doubledowny.request', (data) => {
+  const request = JSON.parse(data);
+  const string = ircColor.blue(".'\x1f/\x1f)");
+  const reply = {
+    target: request.channel,
+    text: string,
+  };
+  if (debug) clog.debug(`Sending reply to: ${request.replyTo}.outgoingMessage`, reply);
+  ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
+  ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
+});
+
+ipc.subscribe('id.request', (data) => {
+  const request = JSON.parse(data);
+  var string = '';
+
+  const x = ~~(Math.random() * 4) + 0;
+  const y = ~~(Math.random() * 999) + 0;
+
+  if (y >= 800) {
+    const dbladez = [
+      'illegal dbladez',
+      'I snuck dbladez into prison up my ass.',
+      'I love sniffing whole lines of dbladez.',
+      'Twenty-five years in prison was worth it for just one hit of dbladez',
+      'Taking dbladez ruined my life.',
+    ];
+    // eslint-disable-next-line security/detect-object-injection
+    string = ircColor.bold(dbladez[x]);
+  } else {
+    string = ircColor.bold('illegal drugs');
+  }
+  const reply = {
+    target: request.channel,
+    text: string,
+  };
+  if (debug) clog.debug(`Sending reply to: ${request.replyTo}.outgoingMessage`, reply);
+  ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
+});
+
+ipc.subscribe('ld.request', (data) => {
+  const request = JSON.parse(data);
+  var string = '';
+  const x = ~~(Math.random() * 29) + 0;
+
+  if (x == 9) {
+    string = ircColor.bold('There are no legal drugs.');
+  } else if (x == 19) {
+    string = ircColor.boldcolor.bold('All drugs are illegal.');
+  } else if (x == 29) {
+    string = ircColor.boldcolor.bold('Your drug use has been logged and reported.');
+  } else {
+    string = ircColor.bold('legal drugs\x02');
+  }
+
+  const reply = {
+    target: request.channel,
+    text: string,
+  };
+  if (debug) clog.debug(`Sending reply to: ${request.replyTo}.outgoingMessage`, reply);
+  ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
+});
+
+ipc.subscribe('intense.request', (data) => {
+  const request = JSON.parse(data);
+  var string = ircColor.bold('[' + request.args + ' intensifies]');
+
+  const reply = {
+    target: request.channel,
+    text: string,
+  };
+  if (debug) clog.debug(`Sending reply to: ${request.replyTo}.outgoingMessage`, reply);
+  ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
+});

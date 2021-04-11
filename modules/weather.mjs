@@ -504,19 +504,15 @@ function formatHumidityString(humidity, platform) {
     switch (true) {
       case humidity < 30:
         string = ircColor.gray(string);
-        clog.debug('low humidity', humidity);
         break;
       case humidity >= 30 && humidity < 50:
         string = ircColor.green(string);
-        clog.debug('medium humidity', humidity);
         break;
       case humidity >= 50 && humidity < 80:
         string = ircColor.blue(string);
-        clog.debug('high humidity', humidity);
         break;
       case 80 <= humidity:
         string = ircColor.red(string);
-        clog.debug('really high humidity', humidity);
         break;
       default:
         break;

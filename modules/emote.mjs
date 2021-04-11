@@ -70,6 +70,17 @@ ipc.subscribe('doubledowny.request', (data) => {
   ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
 });
 
+ipc.subscribe('rainbowdowny.request', (data) => {
+  const request = JSON.parse(data);
+  const string = ircColor.rainbow(".'\x1f/\x1f)");
+  const reply = {
+    target: request.channel,
+    text: string,
+  };
+  if (debug) clog.debug(`Sending reply to: ${request.replyTo}.outgoingMessage`, reply);
+  ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
+});
+
 ipc.subscribe('id.request', (data) => {
   const request = JSON.parse(data);
   var string = '';
@@ -124,7 +135,17 @@ ipc.subscribe('ld.request', (data) => {
 ipc.subscribe('intense.request', (data) => {
   const request = JSON.parse(data);
   var string = ircColor.bold('[' + request.args + ' intensifies]');
+  const reply = {
+    target: request.channel,
+    text: string,
+  };
+  if (debug) clog.debug(`Sending reply to: ${request.replyTo}.outgoingMessage`, reply);
+  ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
+});
 
+ipc.subscribe('lv.request', (data) => {
+  const request = JSON.parse(data);
+  var string = ircColor.red('♥');
   const reply = {
     target: request.channel,
     text: string,

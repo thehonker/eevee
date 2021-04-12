@@ -117,9 +117,9 @@ ipc.subscribe('ld.request', (data) => {
   if (x == 9) {
     string = ircColor.bold('There are no legal drugs.');
   } else if (x == 19) {
-    string = ircColor.boldcolor.bold('All drugs are illegal.');
+    string = ircColor.bold('All drugs are illegal.');
   } else if (x == 29) {
-    string = ircColor.boldcolor.bold('Your drug use has been logged and reported.');
+    string = ircColor.bold('Your drug use has been logged and reported.');
   } else {
     string = ircColor.bold('legal drugs\x02');
   }

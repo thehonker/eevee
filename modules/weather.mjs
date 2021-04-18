@@ -602,7 +602,19 @@ function formatWindString(speed, gust, degrees, units, platform) {
     'NNW',
     'N',
   ];
+  // eslint-disable-next-line prettier/prettier
+  const compassSectorGraphical = [
+    '🠩',
+    '↗',
+    '➡',
+    '↘',
+    '🠫',
+    '↙',
+    '⬅',
+    '↖',
+  ];
   const windDirection = compassSector[(degrees / 22.5).toFixed(0)];
+  const windDirectionGraphical = compassSectorGraphical[(degrees / 45).toFixed(0)];
   if (gust) {
     string = `${speedArray[0]} (${windDirection}) (${speedArray[1]})`;
   } else {

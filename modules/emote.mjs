@@ -27,7 +27,18 @@ process.on('SIGINT', () => {
 
 ipc.subscribe('dunno.request', (data) => {
   const request = JSON.parse(data);
-  const faces = ['‾\\(ツ)/‾', '¯\\(º_o)/¯', '¯\\_(シ)_/¯'];
+  // eslint-disable-next-line prettier/prettier
+  const faces = [
+    '‾\\(ツ)/‾',
+    '¯\\(º_o)/¯',
+    '¯\\_(シ)_/¯',
+    '〳 ◔ Ĺ̯ ◔ \\',
+    '乁໒( ͒ ⌂ ͒ )७ㄏ',
+    'ʕ ᵒ̌ ‸ ᵒ̌ ʔ',
+    '(⊹◕ʖ̯◕)',
+    '໒( ” ͠° ʖ̫ °͠ ” )७',
+    'ʕ ͠° ʖ̫ °͠ ʔ',
+  ];
   const reply = {
     target: request.channel,
     text: ircColor.lime(faces[Math.floor(Math.random() * faces.length)]),

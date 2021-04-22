@@ -133,42 +133,45 @@ function lastfm(data) {
     if (debug) clog.debug('LastFM User found:', query.lastfmUser);
 
     const apiUrl = `http://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&user=${query.lastfmUser}&api_key=${config.apiKey}&format=json`;
-    needle.get(apiUrl, (err, response) => {
-      if (err) {
-        clog.err(err);
-        return;
-      }
+    needle('get', apiUrl)
+      .then((response) => {
+        if (response.body) {
+          if (debug) clog.debug('LastFM response', response);
+          if (debug) clog.debug('Last played track', response.body.recenttracks.track[0]);
 
-      if (response.body) {
-        if (debug) clog.debug('LastFM response', response);
-        if (debug) clog.debug('Last played track', response.body.recenttracks.track[0]);
+          const track = response.body.recenttracks.track[0];
+          const artist = track.artist['#text'];
+          const album = track.album['#text'];
+          const title = track.name;
+          const url = track.url;
 
-        const track = response.body.recenttracks.track[0];
-        const artist = track.artist['#text'];
-        const album = track.album['#text'];
-        const title = track.name;
-
-        // eslint-disable-next-line prettier/prettier
-        var replyText = `${request.nick} is listening to: ${artist} - ${title}${( (album) ? ('(' + album + ')') : '' )}`;
-        if (request.platform === 'irc') {
           // eslint-disable-next-line prettier/prettier
-          replyText = `${request.nick} is listening to: ${ircColor.cyan(artist)} - ${ircColor.red(title)}${( (album) ? (' (' + ircColor.green(album) + ')') : '' )}`;
+          var replyText = `${request.nick} is listening to: [ ${artist} - ${title} ]${( (album) ? ('[ ' + album + ' ]') : '' )}[ ${url} ]`;
+          if (request.platform === 'irc') {
+            // eslint-disable-next-line prettier/prettier
+            replyText = `${request.nick} is listening to: [ ${ircColor.cyan(artist)} - ${ircColor.red(title)} ]${( (album) ? ('[ ' + ircColor.green(album) + ' ]') : '' )}[ ${ircColor.blue(url)} ]`;
+          }
+          const reply = {
+            target: request.channel,
+            text: replyText,
+          };
+          if (debug) clog.debug(reply);
+          ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
+          return;
+        } else {
+          const reply = {
+            target: request.channel,
+            text: 'Error fetching lastfm data',
+          };
+          if (debug) clog.debug(reply);
+          ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
         }
-        const reply = {
-          target: request.channel,
-          text: replyText,
-        };
-        if (debug) clog.debug(reply);
-        ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
-      } else {
-        const reply = {
-          target: request.channel,
-          text: 'Error fetching lastfm data',
-        };
-        if (debug) clog.debug(reply);
-        ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
-      }
-    });
+        return;
+      })
+      .catch((err) => {
+        clog.error(err);
+        return;
+      });
   } else {
     const reply = {
       target: request.channel,

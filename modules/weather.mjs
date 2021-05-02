@@ -173,7 +173,7 @@ function weather(request) {
           userData.units,
           request.platform,
         );
-        string = `[ ${descriptionString} ][ ${tempString} ][ ${humidityString} ][ ${windString} ]`;
+        string = `[ ${weather.name} ][ ${descriptionString} ][ ${tempString} ][ ${humidityString} ][ ${windString} ]`;
         if (debug) console.log(string);
         const reply = {
           target: request.channel,

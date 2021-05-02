@@ -13,7 +13,7 @@ var moduleIdent = 'irc-connector';
 var moduleInstance = null;
 var moduleFullIdent = moduleIdent;
 
-var autoReconnect = false;
+var autoReconnect = true;
 
 if (debug) clog.debug('process.argv:', process.argv);
 

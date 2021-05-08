@@ -67,10 +67,13 @@ ipc.subscribe(`irc-parser.${moduleInstance}.incomingMessage`, (data) => {
   data = JSON.parse(data);
   if (debug) clog.debug('Incoming IRC Message:', data);
   var msgType = null;
+  var target = null;
   if (data.target.slice(0, 1) == '#') {
     msgType = 'chanmsg';
+    target = data.target;
   } else {
     msgType = 'privmsg';
+    target = data.nick;
   }
   const msg = {
     time: new Date(),
@@ -79,7 +82,7 @@ ipc.subscribe(`irc-parser.${moduleInstance}.incomingMessage`, (data) => {
     text: data.message,
     connector: moduleFullIdent,
     platform: 'irc',
-    channel: data.target,
+    channel: target,
     nick: data.nick,
     ident: `${data.ident}@${data.hostname}`,
     raw: data,

@@ -156,8 +156,10 @@ function weather(request) {
     if (debug) clog.debug('Weather User found:', userData);
     // eslint-disable-next-line promise/no-nesting
     getCurrentWeatherLatLon(userData.lat, userData.lon)
-      .then((weather) => {
-        if (debug) clog.debug(weather);
+      .then((response) => {
+        const weather = response.weather;
+        const aqi = response.aqi;
+        if (debug) clog.debug(weather, aqi);
         var string = '';
         const tempString = formatTempString(weather.main.temp, userData.units, request.platform);
         const descriptionString = formatDescriptionString(
@@ -173,7 +175,8 @@ function weather(request) {
           userData.units,
           request.platform,
         );
-        string = `[ ${weather.name} ][ ${descriptionString} ][ ${tempString} ][ ${humidityString} ][ ${windString} ]`;
+        const aqiString = formatAqiString(aqi.list[0].main.aqi, request.platform);
+        string = `[ ${weather.name} ][ ${descriptionString} ][ ${tempString} ][ ${humidityString} ][ ${windString} ] [ ${aqiString} ]`;
         if (debug) console.log(string);
         const reply = {
           target: request.channel,
@@ -315,16 +318,35 @@ function getCurrentWeatherLatLon(lat, lon) {
   return new Promise((resolve, reject) => {
     const weatherApiUrl = `http://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&units=standard&appid=${config.apiKey}`;
     if (debug) clog.debug(weatherApiUrl);
-    needle.get(weatherApiUrl, (err, response) => {
+    needle.get(weatherApiUrl, (err, weatherResponse) => {
       if (err) {
         clog.error(err);
         return reject(err);
       }
-      if (response.body) {
-        return resolve(response.body);
+      if (weatherResponse.body) {
+        const aqiApiUrl = `http://api.openweathermap.org/data/2.5/air_pollution?lat=${lat}&lon=${lon}&appid=${config.apiKey}`;
+        if (debug) clog.debug(aqiApiUrl);
+        needle.get(aqiApiUrl, (err, aqiResponse) => {
+          if (err) {
+            clog.error(err);
+            return reject(err);
+          }
+          if (aqiResponse.body) {
+            if (debug) clog.debug(aqiResponse.body);
+            return resolve({
+              weather: weatherResponse.body,
+              aqi: aqiResponse.body,
+            });
+          } else {
+            let err = new Error('Error fetching current AQI data');
+            err.code = 'E_AQI_API_CALL_FAILED';
+            clog.error(err);
+            return reject(err);
+          }
+        });
       } else {
         let err = new Error('Error fetching current weather data');
-        err.code = 'E_API_CALL_FAILED';
+        err.code = 'E_WEATHER_API_CALL_FAILED';
         clog.error(err);
         return reject(err);
       }
@@ -620,5 +642,53 @@ function formatWindString(speed, gust, degrees, units, platform) {
   } else {
     string = `${speedArray[0]} (${windDirection})`;
   }
+  return string;
+}
+
+function formatAqiString(aqi, platform) {
+  if (debug) clog.debug(aqi, platform);
+  var string = null;
+  switch (aqi) {
+    case 1:
+      string = 'AQI: Good';
+      break;
+    case 2:
+      string = 'AQI: Fair';
+      break;
+    case 3:
+      string = 'AQI: Moderate';
+      break;
+    case 4:
+      string = 'AQI: Poor';
+      break;
+    case 5:
+      string = 'AQI: Very Poor';
+      break;
+    default:
+      break;
+  }
+
+  if (platform === 'irc') {
+    switch (aqi) {
+      case 1:
+        string = ircColor.green('AQI: Good');
+        break;
+      case 2:
+        string = ircColor.green('AQI: Fair');
+        break;
+      case 3:
+        string = ircColor.blue('AQI: Moderate');
+        break;
+      case 4:
+        string = ircColor.red('AQI: Poor');
+        break;
+      case 5:
+        string = ircColor.red('AQI: Very Poor');
+        break;
+      default:
+        break;
+    }
+  }
+  if (debug) clog.debug(string);
   return string;
 }

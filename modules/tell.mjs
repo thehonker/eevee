@@ -216,28 +216,32 @@ ipc.subscribe('_broadcast.incomingMessage.#', (data) => {
   if (debug) clog.debug(message);
   if (debug) clog.debug(`Checking if user ${message.nick} has any tells`);
   const tells = findTellByUser.all({ toUser: message.nick });
+  var replyText = '';
   if (tells.length) {
     if (debug) clog.debug(`Found tells for user ${message.nick}`, tells);
     for (let i = 0; i < tells.length; i++) {
       // eslint-disable-next-line security/detect-object-injection
       let tell = tells[i];
       if (tell.delivered === 0) {
-        // eslint-disable-next-line prettier/prettier
-        var replyText = `${message.nick}: ${`${tell.fromUser}, ${readableTime(tell.dateSent)} ago:`} ${tell.message}`;
         if (tell.platform === 'irc') {
           // eslint-disable-next-line prettier/prettier
-          replyText = `${message.nick}: ${ircColor.blue(`${tell.fromUser}, ${readableTime(tell.dateSent)} ago:`)} ${tell.message}`;
+          replyText += `${message.nick}: ${ircColor.blue(`${tell.fromUser}, ${readableTime(tell.dateSent)} ago:`)} ${tell.message}\n`;
+        } else {
+          // eslint-disable-next-line prettier/prettier
+          replyText += `${message.nick}: ${`${tell.fromUser}, ${readableTime(tell.dateSent)} ago:`} ${tell.message}\n`;
         }
+        markAsDelivered.run({
+          date: new Date().toISOString(),
+          id: tell.id,
+        });
+      }
+      if (i === tells.length - 1) {
         const reply = {
           target: message.channel,
           text: replyText,
         };
         if (debug) clog.debug(`Sending reply to: ${message.replyTo}.outgoingMessage`, reply);
         ipc.publish(`${message.replyTo}.outgoingMessage`, JSON.stringify(reply));
-        markAsDelivered.run({
-          date: new Date().toISOString(),
-          id: tell.id,
-        });
       }
     }
   }

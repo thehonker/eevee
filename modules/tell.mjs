@@ -97,7 +97,9 @@ const addTell = db.prepare(
    VALUES (@id, @dateSent, @fromConnector, @fromChannel, @fromIdent, @fromUser, @toUser, @platform, @message, @pm, @delivered, @dateDelivered)`,
 );
 
-const findTellByUser = db.prepare(`SELECT * FROM '${tableName}' WHERE toUser = @toUser AND delivered = 0`);
+const findTellByUser = db.prepare(
+  `SELECT * FROM '${tableName}' WHERE toUser = @toUser AND delivered = 0 ORDER BY dateSent ASC`,
+);
 const findTellByID = db.prepare(`SELECT * FROM '${tableName}' WHERE id = @id`);
 const markAsDelivered = db.prepare(`UPDATE '${tableName}' SET dateDelivered = @date, delivered = 1 WHERE id = @id`);
 const removeTellByID = db.prepare(`DELETE FROM '${tableName}' WHERE id = @id`);
@@ -216,7 +218,9 @@ ipc.subscribe('_broadcast.incomingMessage.#', (data) => {
   const tells = findTellByUser.all({ toUser: message.nick });
   if (tells.length) {
     if (debug) clog.debug(`Found tells for user ${message.nick}`, tells);
-    tells.forEach((tell) => {
+    for (let i = 0; i < tells.length; i++) {
+      // eslint-disable-next-line security/detect-object-injection
+      let tell = tells[i];
       if (tell.delivered === 0) {
         // eslint-disable-next-line prettier/prettier
         var replyText = `${message.nick}: ${`${tell.fromUser}, ${readableTime(tell.dateSent)} ago:`} ${tell.message}`;
@@ -234,8 +238,8 @@ ipc.subscribe('_broadcast.incomingMessage.#', (data) => {
           date: new Date().toISOString(),
           id: tell.id,
         });
-        setPingListener(ipc, moduleFullIdent, 'listening');
       }
-    });
+    }
   }
+  setPingListener(ipc, moduleFullIdent, 'listening');
 });

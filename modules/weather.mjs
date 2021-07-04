@@ -125,7 +125,7 @@ ipc.subscribe('weather.request', (data) => {
   if (debug) clog.debug('weather request received', request);
 
   if (request.args.split(' ')[0] != '') {
-    createUpdateWeatherLocation(request.args.split(' ')[0], request.nick)
+    createUpdateWeatherLocation(request.args, request.nick)
       .then((dbInsertResult) => {
         if (debug) clog.debug(dbInsertResult);
         weather(request);

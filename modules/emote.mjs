@@ -47,6 +47,17 @@ ipc.subscribe('dunno.request', (data) => {
   ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
 });
 
+ipc.subscribe('shrug.request', (data) => {
+  const request = JSON.parse(data);
+  const face = '¯\\_(ツ)_/¯';
+  const reply = {
+    target: request.channel,
+    text: face,
+  };
+  if (debug) clog.debug(`Sending reply to: ${request.replyTo}.outgoingMessage`, reply);
+  ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
+});
+
 ipc.subscribe('dudeweed.request', (data) => {
   const request = JSON.parse(data);
   const string = ircColor.green.inverse('dude weed lmao');

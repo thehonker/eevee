@@ -13,15 +13,53 @@ lockPidFile(ident);
 
 setPingListener(ipc, ident, 'init');
 
+const help = [
+  {
+    command: 'echo',
+    descr: 'Echo test command',
+    params: [
+      {
+        param: 'text',
+        required: true,
+        descr: 'The text to echo',
+      },
+    ],
+  },
+  /*
+  {
+    command: 'foo',
+    descr: 'bar',
+    params [{}],
+  }
+  */
+];
+
 // Things that need to be done once the ipc is "connected"
 ipc.on('start', () => {
   if (debug) clog.debug('IPC "connected"');
   if (process.send) process.send('ready');
+  ipc.publish(
+    '_help.update',
+    JSON.stringify({
+      from: ident,
+      help: help,
+    }),
+  );
   setPingListener(ipc, ident, 'running');
 });
 
 process.on('SIGINT', () => {
   handleSIGINT(ident, ipc);
+});
+
+ipc.subscribe('_help.updateRequest', () => {
+  ipc.publish(
+    '_help.update',
+    JSON.stringify({
+      from: ident,
+      help: help,
+    }),
+  );
 });
 
 ipc.subscribe('echo.request', (data) => {

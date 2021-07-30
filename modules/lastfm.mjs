@@ -37,10 +37,41 @@ setPingListener(ipc, moduleFullIdent, 'init');
 const config = getConfig(moduleFullIdent);
 if (debug) clog.debug('Config', config);
 
+const help = [
+  {
+    command: 'lastfm',
+    descr: 'Retrieve latest from lastfm, optionally setting username',
+    params: [
+      {
+        param: 'lastfm_username',
+        required: false,
+        descr: 'If provided will set/update lastfm username',
+      },
+    ],
+  },
+  {
+    command: 'fm',
+    descr: 'Alias to lastfm command',
+    params: [],
+  },
+  {
+    command: 'lastfm3x3',
+    descr: 'Retrieve a 7-day 3x3 from tapmusic.net/lastfm',
+    params: [],
+  },
+];
+
 // Once IPC is connected, tell our parent process that we're ready
 ipc.on('start', () => {
   if (debug) clog.debug('IPC "connected"');
   if (process.send) process.send('ready');
+  ipc.publish(
+    '_help.update',
+    JSON.stringify({
+      from: moduleFullIdent,
+      help: help,
+    }),
+  );
 });
 
 // Handle SIGINT
@@ -49,6 +80,16 @@ process.on('SIGINT', () => {
   db.close();
   // Run common handler
   handleSIGINT(moduleFullIdent, ipc);
+});
+
+ipc.subscribe('_help.updateRequest', () => {
+  ipc.publish(
+    '_help.update',
+    JSON.stringify({
+      from: moduleFullIdent,
+      help: help,
+    }),
+  );
 });
 
 // End boilerplate

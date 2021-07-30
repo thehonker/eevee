@@ -36,6 +36,36 @@ setPingListener(ipc, moduleFullIdent, 'init');
 const config = getConfig(moduleFullIdent);
 if (debug) clog.debug(config);
 
+const help = [
+  {
+    command: 'tell',
+    descr: 'Leave a message for someone. Returns a tell ID that can be used with rmtell',
+    params: [
+      {
+        param: 'to',
+        required: true,
+        descr: 'Person to send the tell to',
+      },
+      {
+        param: 'message',
+        required: true,
+        descr: 'Text to send',
+      }
+    ],
+  },
+  {
+    command: 'rmtell',
+    descr: 'Delete a tell that you sent',
+    params: [
+      {
+        param: 'tell ID',
+        required: true,
+        descr: 'ID of the tell to delete',
+      },
+    ],
+  },
+];
+
 // Print every message we receive if debug is enabled
 if (debug) {
   ipc.subscribe(`${moduleFullIdent}.#`, (data, info) => {
@@ -47,11 +77,28 @@ if (debug) {
 ipc.on('start', () => {
   if (debug) clog.debug('IPC "connected"');
   if (process.send) process.send('ready');
+  ipc.publish(
+    '_help.update',
+    JSON.stringify({
+      from: moduleFullIdent,
+      help: help,
+    }),
+  );
 });
 
 process.on('SIGINT', () => {
   db.close();
   handleSIGINT(moduleFullIdent, ipc);
+});
+
+ipc.subscribe('_help.updateRequest', () => {
+  ipc.publish(
+    '_help.update',
+    JSON.stringify({
+      from: moduleFullIdent,
+      help: help,
+    }),
+  );
 });
 
 // Check / Create DB

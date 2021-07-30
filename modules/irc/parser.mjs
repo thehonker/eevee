@@ -111,6 +111,7 @@ ipc.subscribe(`irc-parser.${moduleInstance}.incomingMessage`, (data) => {
       .split(' ')
       .slice(1)
       .join(' ');
+    msg.prefix = prefix;
 
     if (isAllowedCommand(msg.command)) {
       if (debug) clog.debug('Received command:', msg.command + ' ' + msg.args);

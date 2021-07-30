@@ -1,6 +1,6 @@
 'use strict';
 
-const ident = 'slap',
+const ident = 'slap';
 const debug = true;
 
 import { default as clog } from 'ee-log';

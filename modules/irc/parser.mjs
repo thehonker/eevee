@@ -95,7 +95,7 @@ ipc.subscribe(`irc-parser.${moduleInstance}.incomingMessage`, (data) => {
   if (msg.text === '.bots') {
     const reply = {
       target: msg.channel,
-      text: `Reporting in! [nodejs] eevee irc connector v0.4.20 (command prefix is ${config.commandPrefix})`,
+      text: `Reporting in! [nodejs] eevee irc connector v0.4.20 (command prefix is ${config.commandPrefix}, try ${config.commandPrefix}help)`,
     };
     if (debug) clog.debug(`Sending reply to: ${msg.replyTo}.outgoingMessage`, reply);
     ipc.publish(`${msg.replyTo}.outgoingMessage`, JSON.stringify(reply));

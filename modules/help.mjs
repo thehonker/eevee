@@ -63,7 +63,7 @@ ipc.subscribe('help.request', (data) => {
       helpTable.push([`${request.prefix}${command.command}`, argsString, stringDivider(command.descr, 38, '\n')]);
     });
     const reply = {
-      target: request.channel,
+      target: request.nick,
       text: 'Module: ' + module + '\n' + helpTable.toString(),
     };
     if (debug) clog.debug(`Sending reply to: ${request.replyTo}.outgoingMessage`, reply);

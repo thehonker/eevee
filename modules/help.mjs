@@ -46,7 +46,7 @@ ipc.subscribe('help.request', (data) => {
   helpCache.forEach((commands, module) => {
     const helpTable = new Table({
       head: ['Command', 'Args', 'Description'],
-      colWidths: [14, 30, 40],
+      colWidths: [20, 30, 40],
       style: { compact: true, 'padding-left': 1 },
     });
 

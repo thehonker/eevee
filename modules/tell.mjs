@@ -50,12 +50,12 @@ const help = [
         param: 'message',
         required: true,
         descr: 'Text to send',
-      }
+      },
     ],
   },
   {
     command: 'rmtell',
-    descr: 'Delete a tell that you sent',
+    descr: "Delete a tell that you sent. Your current hostmask must match the orig. sender's hostmask",
     params: [
       {
         param: 'tell ID',

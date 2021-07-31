@@ -38,13 +38,44 @@ import { default as ircColor } from 'irc-colors';
 import { ipc, lockPidFile, handleSIGINT, setPingListener } from '../lib/common.mjs';
 lockPidFile(ident);
 setPingListener(ipc, ident, 'init');
+const help = [
+  {
+    command: '8ball',
+    descr: 'Ask the 8ball a question',
+    params: [
+      {
+        param: 'question',
+        required: true,
+        descr: 'Question to ask',
+      },
+    ],
+  },
+];
+
 ipc.on('start', () => {
   if (debug) clog.debug('IPC "connected"');
   if (process.send) process.send('ready');
   setPingListener(ipc, ident, 'running');
+  ipc.publish(
+    '_help.update',
+    JSON.stringify({
+      from: ident,
+      help: help,
+    }),
+  );
 });
 process.on('SIGINT', () => {
   handleSIGINT(ident, ipc);
+});
+
+ipc.subscribe('_help.updateRequest', () => {
+  ipc.publish(
+    '_help.update',
+    JSON.stringify({
+      from: ident,
+      help: help,
+    }),
+  );
 });
 
 /* Main start */

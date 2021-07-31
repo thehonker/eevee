@@ -7,7 +7,7 @@ const ident = 'help';
 const debug = true;
 
 import { default as clog } from 'ee-log';
-import { default as AsciiTable } from 'ascii-table';
+import { default as Table } from 'cli-table';
 
 import { ipc, lockPidFile, handleSIGINT, setPingListener } from '../lib/common.mjs';
 
@@ -42,10 +42,14 @@ ipc.subscribe('help.request', (data) => {
 
   const sortedHelp = new Map([...helpCache.entries()].sort());
   if (debug) clog.debug(sortedHelp);
-  const outputTable = new AsciiTable();
-  outputTable.setHeading('command', 'args', 'description');
 
   helpCache.forEach((commands, module) => {
+    const helpTable = new Table({
+      head: ['Command', 'Args', 'Description'],
+      colWidths: [14, 30, 40],
+      style: { compact: true, 'padding-left': 1 },
+    });
+
     if (debug) clog.debug(commands, module);
     commands.forEach((command) => {
       var argsString = '';
@@ -56,16 +60,16 @@ ipc.subscribe('help.request', (data) => {
           argsString += `[${param.param}] `;
         }
       });
-      outputTable.addRow(`${request.prefix}${command.command}`, argsString, command.descr);
+      helpTable.push([`${request.prefix}${command.command}`, argsString, stringDivider(command.descr, 38, '\n')]);
     });
+    const reply = {
+      target: request.channel,
+      text: 'Module: ' + module + '\n' + helpTable.toString(),
+    };
+    if (debug) clog.debug(`Sending reply to: ${request.replyTo}.outgoingMessage`, reply);
+    ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
   });
 
-  const reply = {
-    target: request.nick,
-    text: outputTable.toString(),
-  };
-  if (debug) clog.debug(`Sending reply to: ${request.replyTo}.outgoingMessage`, reply);
-  ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
   setPingListener(ipc, ident, 'listening');
 });
 
@@ -81,3 +85,17 @@ ipc.subscribe('help.request', (data) => {
 [6:52 PM] eggs: global substitutions would just consist of shit that all modules could conceivably want to sub in like "this is the bot's name, this is my owner, this is my cmd prefix"
 
 */
+
+function stringDivider(str, width, spaceReplacer) {
+  if (str.length > width) {
+    var p = width;
+    // eslint-disable-next-line security/detect-object-injection
+    for (; p > 0 && str[p] != ' '; p--) {}
+    if (p > 0) {
+      var left = str.substring(0, p);
+      var right = str.substring(p + 1);
+      return left + spaceReplacer + stringDivider(right, width, spaceReplacer);
+    }
+  }
+  return str;
+}

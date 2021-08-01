@@ -40,36 +40,73 @@ ipc.subscribe('help.request', (data) => {
   const request = JSON.parse(data);
   if (debug) clog.debug('help request received:', request);
 
-  const sortedHelp = new Map([...helpCache.entries()].sort());
-  if (debug) clog.debug(sortedHelp);
-
-  helpCache.forEach((commands, module) => {
+  if (request.args) {
+    const sortedHelp = new Map([...helpCache.entries()].sort());
+    const helpText = sortedHelp.get(request.args);
     const helpTable = new Table({
       head: ['Command', 'Args', 'Description'],
       colWidths: [20, 30, 40],
       style: { compact: true, 'padding-left': 1 },
     });
 
-    if (debug) clog.debug(commands, module);
-    commands.forEach((command) => {
-      var argsString = '';
-      command.params.forEach((param) => {
-        if (param.required) {
-          argsString += `<${param.param}> `;
-        } else {
-          argsString += `[${param.param}] `;
-        }
+    if (debug) clog.debug(helpText, request.args);
+    if (helpText) {
+      helpText.forEach((command) => {
+        var argsString = '';
+        command.params.forEach((param) => {
+          if (param.required) {
+            argsString += `<${param.param}> `;
+          } else {
+            argsString += `[${param.param}] `;
+          }
+        });
+        helpTable.push([`${request.prefix}${command.command}`, argsString, stringWrap(command.descr, 38, '\n')]);
       });
-      helpTable.push([`${request.prefix}${command.command}`, argsString, stringWrap(command.descr, 38, '\n')]);
-    });
-    const reply = {
-      target: request.nick,
-      text: 'Module: ' + module + '\n' + helpTable.toString(),
-    };
-    if (debug) clog.debug(`Sending reply to: ${request.replyTo}.outgoingMessage`, reply);
-    ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
-  });
+      const reply = {
+        target: request.nick,
+        text: 'Module: ' + request.args + '\n' + helpTable.toString(),
+      };
+      if (debug) clog.debug(`Sending reply to: ${request.replyTo}.outgoingMessage`, reply);
+      ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
+    } else {
+      const reply = {
+        target: request.nick,
+        text: 'Help not found for module ' + request.args,
+      };
+      if (debug) clog.debug(`Sending reply to: ${request.replyTo}.outgoingMessage`, reply);
+      ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
+    }
+  } else {
+    const sortedHelp = new Map([...helpCache.entries()].sort());
+    if (debug) clog.debug(sortedHelp);
 
+    sortedHelp.forEach((commands, module) => {
+      const helpTable = new Table({
+        head: ['Command', 'Args', 'Description'],
+        colWidths: [20, 30, 40],
+        style: { compact: true, 'padding-left': 1 },
+      });
+
+      if (debug) clog.debug(commands, module);
+      commands.forEach((command) => {
+        var argsString = '';
+        command.params.forEach((param) => {
+          if (param.required) {
+            argsString += `<${param.param}> `;
+          } else {
+            argsString += `[${param.param}] `;
+          }
+        });
+        helpTable.push([`${request.prefix}${command.command}`, argsString, stringWrap(command.descr, 38, '\n')]);
+      });
+      const reply = {
+        target: request.nick,
+        text: 'Module: ' + module + '\n' + helpTable.toString(),
+      };
+      if (debug) clog.debug(`Sending reply to: ${request.replyTo}.outgoingMessage`, reply);
+      ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
+    });
+  }
   setPingListener(ipc, ident, 'listening');
 });
 

@@ -38,10 +38,46 @@ setPingListener(ipc, moduleFullIdent, 'init');
 const config = getConfig(moduleFullIdent);
 if (debug) clog.debug('Config', config);
 
+const help = [
+  {
+    command: 'weather',
+    descr: 'Fetch weather, optionally setting location',
+    params: [
+      {
+        param: 'location',
+        required: false,
+        descr: 'If provided will update weather location',
+      },
+    ],
+  },
+  {
+    command: 'forecast',
+    descr: 'Under construction!',
+    params: [],
+  },
+  {
+    command: 'fivecast',
+    descr: 'Under construction!',
+    params: [],
+  },
+  {
+    command: 'weathermap',
+    descr: 'Under construction!',
+    params: [],
+  },
+];
+
 // Things that need to be done once the ipc is "connected"
 ipc.on('start', () => {
   if (debug) clog.debug('IPC "connected"');
   if (process.send) process.send('ready');
+  ipc.publish(
+    '_help.update',
+    JSON.stringify({
+      from: moduleFullIdent,
+      help: help,
+    }),
+  );
   setPingListener(ipc, ident, 'running');
 });
 
@@ -50,6 +86,16 @@ process.on('SIGINT', () => {
   db.close();
   // Run common handler
   handleSIGINT(moduleFullIdent, ipc);
+});
+
+ipc.subscribe('_help.updateRequest', () => {
+  ipc.publish(
+    '_help.update',
+    JSON.stringify({
+      from: moduleFullIdent,
+      help: help,
+    }),
+  );
 });
 
 // Check / Create DB

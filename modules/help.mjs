@@ -60,7 +60,7 @@ ipc.subscribe('help.request', (data) => {
           argsString += `[${param.param}] `;
         }
       });
-      helpTable.push([`${request.prefix}${command.command}`, argsString, stringDivider(command.descr, 38, '\n')]);
+      helpTable.push([`${request.prefix}${command.command}`, argsString, stringWrap(command.descr, 38, '\n')]);
     });
     const reply = {
       target: request.nick,
@@ -86,7 +86,7 @@ ipc.subscribe('help.request', (data) => {
 
 */
 
-function stringDivider(str, width, spaceReplacer) {
+function stringWrap(str, width, spaceReplacer) {
   if (str.length > width) {
     var p = width;
     // eslint-disable-next-line security/detect-object-injection
@@ -94,7 +94,7 @@ function stringDivider(str, width, spaceReplacer) {
     if (p > 0) {
       var left = str.substring(0, p);
       var right = str.substring(p + 1);
-      return left + spaceReplacer + stringDivider(right, width, spaceReplacer);
+      return left + spaceReplacer + stringWrap(right, width, spaceReplacer);
     }
   }
   return str;

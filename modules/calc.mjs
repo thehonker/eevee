@@ -21,15 +21,51 @@ if (debug) {
   });
 }
 
+const help = [
+  {
+    command: 'calc',
+    descr: 'Evaluate a math expression with mathJS',
+    params: [
+      {
+        param: 'expression',
+        required: true,
+        descr: 'Expression to evaluate',
+      },
+    ],
+  },
+  {
+    command: 'c',
+    descr: 'Alias to calc command',
+    params: [],
+  },
+];
+
 // Things that need to be done once the ipc is "connected"
 ipc.on('start', () => {
   if (debug) clog.debug('IPC "connected"');
   if (process.send) process.send('ready');
+  ipc.publish(
+    '_help.update',
+    JSON.stringify({
+      from: ident,
+      help: help,
+    }),
+  );
   setPingListener(ipc, ident, 'running');
 });
 
 process.on('SIGINT', () => {
   handleSIGINT(ident, ipc);
+});
+
+ipc.subscribe('_help.updateRequest', () => {
+  ipc.publish(
+    '_help.update',
+    JSON.stringify({
+      from: ident,
+      help: help,
+    }),
+  );
 });
 
 ipc.subscribe('calc.request', (data) => {

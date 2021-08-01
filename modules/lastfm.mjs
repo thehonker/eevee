@@ -43,7 +43,7 @@ const help = [
     descr: 'Retrieve latest from lastfm, optionally setting username',
     params: [
       {
-        param: 'lastfm_username',
+        param: 'username',
         required: false,
         descr: 'If provided will set/update lastfm username',
       },

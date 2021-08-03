@@ -3,6 +3,10 @@
 /* Ask the magic 8-ball module for eevee */
 /* Contributed by mozai@wetfish */
 
+import { default as clog } from 'ee-log';
+import { default as ircColor } from 'irc-colors';
+import { ipc, lockPidFile, handleSIGINT, setPingListener } from '../lib/common.mjs';
+
 /* Config start */
 
 const answers = [
@@ -31,11 +35,8 @@ const debug = true;
 const names = ['magic Eight-ball\u{2122}', '8ball', 'eightball', '\u{277d}'];
 
 /* Init start */
-
 const ident = 'eightball';
-import { default as clog } from 'ee-log';
-import { default as ircColor } from 'irc-colors';
-import { ipc, lockPidFile, handleSIGINT, setPingListener } from '../lib/common.mjs';
+
 lockPidFile(ident);
 setPingListener(ipc, ident, 'init');
 const help = [

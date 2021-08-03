@@ -107,7 +107,7 @@ ipc.subscribe('_help.updateRequest', () => {
 });
 
 // Google search
-ipc.subscribe('g.request', async (data) => {
+ipc.subscribe('g.request', (data) => {
   const request = JSON.parse(data);
   const params = {
     page: 0,
@@ -120,7 +120,7 @@ ipc.subscribe('g.request', async (data) => {
 });
 
 // Image Search
-ipc.subscribe('im.request', async (data) => {
+ipc.subscribe('im.request', (data) => {
   const request = JSON.parse(data);
   if (debug) clog.debug('Image request', request);
   const params = {
@@ -134,7 +134,7 @@ ipc.subscribe('im.request', async (data) => {
 });
 
 // Gif search
-ipc.subscribe('gif.request', async (data) => {
+ipc.subscribe('gif.request', (data) => {
   const request = JSON.parse(data);
   if (debug) clog.debug('Gif request', request);
   const params = {
@@ -149,7 +149,7 @@ ipc.subscribe('gif.request', async (data) => {
 });
 
 // Image search - restricted to tumblr
-ipc.subscribe('tu.request', async (data) => {
+ipc.subscribe('tu.request', (data) => {
   const request = JSON.parse(data);
   if (debug) clog.debug('Tumblr request', request);
   const params = {
@@ -162,6 +162,11 @@ ipc.subscribe('tu.request', async (data) => {
     },
   };
   googleImageSearch(request, params);
+});
+
+// Twitter search
+ipc.subscribe('tw.request', (data) => {
+
 });
 
 function googleSearch(request, params) {

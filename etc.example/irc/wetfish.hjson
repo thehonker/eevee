@@ -1,7 +1,7 @@
 {
   errorAction: 'die',
   owner: 'Weazzy@lu.dicro.us',
-  commandPrefix: '<',
+  prefixRegex: '^<',
   client: {
     nick: 'eevee',
     username: 'iAmABot',

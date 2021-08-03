@@ -59,7 +59,7 @@ ipc.on('start', () => {
 });
 
 process.on('SIGINT', () => {
-  handleSIGINT(moduleFullIdent, ipc, debug);
+  handleSIGINT(moduleFullIdent, ipc);
 });
 
 if (debug) clog.debug(`Subscribing to 'irc-parser.${moduleInstance}.incomingMessage'`);
@@ -95,18 +95,20 @@ ipc.subscribe(`irc-parser.${moduleInstance}.incomingMessage`, (data) => {
   if (msg.text === '.bots') {
     const reply = {
       target: msg.channel,
-      text: `Reporting in! [nodejs] eevee irc connector v0.4.20 (command prefix is ${config.commandPrefix}, try ${config.commandPrefix}help)`,
+      text: `Reporting in! [nodejs] eevee irc connector v0.4.20 (try "${config.client.nick}: help")`,
     };
     if (debug) clog.debug(`Sending reply to: ${msg.replyTo}.outgoingMessage`, reply);
     ipc.publish(`${msg.replyTo}.outgoingMessage`, JSON.stringify(reply));
     return;
   }
 
-  const prefix = msg.text.slice(0, config.commandPrefix.length);
-  if (prefix === config.commandPrefix) {
-    if (debug) clog.debug(`Message matched prefix ${config.commandPrefix}:`, msg.text);
+  // eslint-disable-next-line security/detect-non-literal-regexp
+  const prefixRegex = new RegExp(config.prefixRegex);
+  if (prefixRegex.test(msg.text)) {
+    const prefix = msg.text.match(prefixRegex);
 
-    msg.command = msg.text.slice(config.commandPrefix.length).split(' ')[0];
+    if (debug) clog.debug(`Message matched prefix ${prefix}:`, msg.text);
+    msg.command = msg.text.slice(prefix.length).split(' ')[0];
     msg.args = msg.text
       .split(' ')
       .slice(1)
@@ -117,5 +119,22 @@ ipc.subscribe(`irc-parser.${moduleInstance}.incomingMessage`, (data) => {
       if (debug) clog.debug('Received command:', msg.command + ' ' + msg.args);
       ipc.publish(`${msg.command}.request`, JSON.stringify(msg));
     }
+  } else if (msg.text.split(' ')[0] === `${config.client.nick}:`) {
+    clog.debug('nick prefix matched!');
+    const prefix = `${config.client.nick}: `;
+    if (debug) clog.debug(`Message matched prefix ${prefix}:`, msg.text);
+    msg.command = msg.text.split(' ').slice(1)[0];
+    msg.args = msg.text
+      .split(' ')
+      .slice(2)
+      .join(' ');
+    msg.prefix = prefix;
+
+    if (isAllowedCommand(msg.command)) {
+      if (debug) clog.debug('Received command:', msg.command + ' ' + msg.args);
+      ipc.publish(`${msg.command}.request`, JSON.stringify(msg));
+    }
+  } else {
+    // Foo
   }
 });

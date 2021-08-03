@@ -12,7 +12,7 @@ Skipped 03:37 Honk ║ >              ?ir  <term>                       Search G
 Skipped 03:37 Honk ║ >              ?tr  <term>                       Search Twitter (random tweet)
 Done 03:37 Honk ║ >              ?tu  <term>                       Search Google Images (top Tumblr)
 Skipped 03:37 Honk ║ >             ?tur  <term>                       Search Google Images (random Tumblr)
-03:37 Honk ║ >              ?tw  <term>                       Search Twitter (top tweet)
+Done 03:37 Honk ║ >              ?tw  <term>                       Search Twitter (top tweet)
 03:37 Honk ║ >              ?ud  <what>                       Do an urban dictionary search
 03:37 Honk ║ >              ?yt  <term>                       Search YouTube
 
@@ -71,6 +71,17 @@ const help = [
   {
     command: 'tu',
     descr: 'Tumblr image search',
+    params: [
+      {
+        param: 'query',
+        required: true,
+        descr: 'The search to run',
+      },
+    ],
+  },
+  {
+    command: 'tw',
+    descr: 'Twitter search',
     params: [
       {
         param: 'query',
@@ -259,22 +270,30 @@ function twitterSearch(request) {
       q: request.args,
       count: 10,
     },
-    (error, data, response) => {
-      const selectedResult = data.statuses[Math.floor(Math.random() * data.statuses.length)];
-      //clog.debug(selectedResult);
-      clog.debug(selectedResult.created_at);
-      clog.debug(selectedResult.text);
-      clog.debug(selectedResult.user.name);
-      clog.debug(selectedResult.user.screen_name);
-      clog.debug(`https://twitter.com/i/web/status/${selectedResult.id}`);
-      const outputString = `${ircColor.blue(`@${selectedResult.user.screen_name}`)}: ${selectedResult.text} | https://twitter.com/i/web/status/${selectedResult.id_str}`;
-      const reply = {
-        target: request.channel,
-        text: outputString,
-      };
-      if (debug) clog.debug(`Sending reply to: ${request.replyTo}.outgoingMessage`, reply);
-      ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
-      return;
+    (error, data) => {
+      if (error) {
+        clog.error(error);
+        return;
+      } else {
+        const selectedResult = data.statuses[Math.floor(Math.random() * data.statuses.length)];
+        /* D
+        clog.debug(selectedResult);
+        clog.debug(selectedResult.created_at);
+        clog.debug(selectedResult.text);
+        clog.debug(selectedResult.user.name);
+        clog.debug(selectedResult.user.screen_name);
+        clog.debug(`https://twitter.com/i/web/status/${selectedResult.id}`);
+        */
+        // eslint-disable-next-line prettier/prettier
+        const outputString = `${ircColor.blue(`@${selectedResult.user.screen_name}`)}: ${selectedResult.text} | https://twitter.com/i/web/status/${selectedResult.id_str}`;
+        const reply = {
+          target: request.channel,
+          text: outputString,
+        };
+        if (debug) clog.debug(`Sending reply to: ${request.replyTo}.outgoingMessage`, reply);
+        ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
+        return;
+      }
     },
   );
 }

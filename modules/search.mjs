@@ -109,16 +109,65 @@ ipc.subscribe('_help.updateRequest', () => {
 // Google search
 ipc.subscribe('g.request', async (data) => {
   const request = JSON.parse(data);
-  const options = {
+  const params = {
     page: 0,
     safe: false,
     additional_params: {
       hl: 'en',
     },
   };
+  googleSearch(request, params);
+});
+
+// Image Search
+ipc.subscribe('im.request', async (data) => {
+  const request = JSON.parse(data);
+  if (debug) clog.debug('Image request', request);
+  const params = {
+    page: 0,
+    safe: false,
+    additional_params: {
+      hl: 'en',
+    },
+  };
+  googleImageSearch(request, params);
+});
+
+// Gif search
+ipc.subscribe('gif.request', async (data) => {
+  const request = JSON.parse(data);
+  if (debug) clog.debug('Gif request', request);
+  const params = {
+    page: 0,
+    safe: false,
+    additional_params: {
+      hl: 'en',
+      tbs: 'itp:animated',
+    },
+  };
+  googleImageSearch(request, params);
+});
+
+// Image search - restricted to tumblr
+ipc.subscribe('tu.request', async (data) => {
+  const request = JSON.parse(data);
+  if (debug) clog.debug('Tumblr request', request);
+  const params = {
+    page: 0,
+    safe: false,
+    additional_params: {
+      hl: 'en',
+      //as_occt: 'media.tumblr.com',
+      as_sitesearch: 'tumblr.com',
+    },
+  };
+  googleImageSearch(request, params);
+});
+
+function googleSearch(request, params) {
   var outputString = '';
   google
-    .search(request.args, options)
+    .search(request.args, params)
     .then((results) => {
       if (debug) clog.debug(results);
       if (results.length != 0) {
@@ -151,21 +200,11 @@ ipc.subscribe('g.request', async (data) => {
       ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
       return;
     });
-});
+}
 
-// Image Search
-ipc.subscribe('im.request', async (data) => {
-  const request = JSON.parse(data);
-  if (debug) clog.debug('Image request', request);
-  const options = {
-    page: 0,
-    safe: false,
-    additional_params: {
-      hl: 'en',
-    },
-  };
+function googleImageSearch(request, params) {
   google
-    .image(request.args, options)
+    .image(request.args, params)
     .then((results) => {
       if (debug) clog.debug(results);
       var outputString = '';
@@ -199,103 +238,4 @@ ipc.subscribe('im.request', async (data) => {
       ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
       return;
     });
-});
-
-// Gif search
-ipc.subscribe('gif.request', async (data) => {
-  const request = JSON.parse(data);
-  if (debug) clog.debug('Gif request', request);
-  const options = {
-    page: 0,
-    safe: false,
-    additional_params: {
-      hl: 'en',
-      tbs: 'itp:animated',
-    },
-  };
-  google
-    .image(request.args, options)
-    .then((results) => {
-      if (debug) clog.debug(results);
-      var outputString = '';
-      if (results.length != 0) {
-        const selectedResult = results[Math.floor(Math.random() * results.length)];
-        clog.error(selectedResult);
-        clog.debug(selectedResult.title, selectedResult.url);
-        if (request.platform === 'irc') {
-          outputString = `${ircColor.blue(selectedResult.origin.title)} | ${selectedResult.url}`;
-        } else {
-          outputString = `${selectedResult.origin.title} | ${selectedResult.link}`;
-        }
-      } else {
-        outputString = ircColor.red('No results?!?!');
-      }
-      const reply = {
-        target: request.channel,
-        text: outputString,
-      };
-      if (debug) clog.debug(`Sending reply to: ${request.replyTo}.outgoingMessage`, reply);
-      ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
-      return;
-    })
-    .catch((error) => {
-      clog.error(error.message);
-      const reply = {
-        target: request.channel,
-        text: ircColor.red(error.message),
-      };
-      if (debug) clog.debug(`Sending reply to: ${request.replyTo}.outgoingMessage`, reply);
-      ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
-      return;
-    });
-});
-
-// Image search - restricted to tumblr
-ipc.subscribe('tu.request', async (data) => {
-  const request = JSON.parse(data);
-  if (debug) clog.debug('Tumblr request', request);
-  const options = {
-    page: 0,
-    safe: false,
-    additional_params: {
-      hl: 'en',
-      as_occt: 'media.tumblr.com',
-      as_sitesearch: 'tumblr.com',
-    },
-  };
-  google
-    .image(request.args, options)
-    .then((results) => {
-      if (debug) clog.debug(results);
-      var outputString = '';
-      if (results.length != 0) {
-        const selectedResult = results[Math.floor(Math.random() * results.length)];
-        clog.error(selectedResult);
-        clog.debug(selectedResult.title, selectedResult.url);
-        if (request.platform === 'irc') {
-          outputString = `${ircColor.blue(selectedResult.origin.title)} | ${selectedResult.url}`;
-        } else {
-          outputString = `${selectedResult.origin.title} | ${selectedResult.link}`;
-        }
-      } else {
-        outputString = ircColor.red('No results?!?!');
-      }
-      const reply = {
-        target: request.channel,
-        text: outputString,
-      };
-      if (debug) clog.debug(`Sending reply to: ${request.replyTo}.outgoingMessage`, reply);
-      ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
-      return;
-    })
-    .catch((error) => {
-      clog.error(error.message);
-      const reply = {
-        target: request.channel,
-        text: ircColor.red(error.message),
-      };
-      if (debug) clog.debug(`Sending reply to: ${request.replyTo}.outgoingMessage`, reply);
-      ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
-      return;
-    });
-});
+}

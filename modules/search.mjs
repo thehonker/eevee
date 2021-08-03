@@ -24,12 +24,15 @@ const debug = true;
 import { default as clog } from 'ee-log';
 import { default as google } from 'googlethis';
 import { default as ircColor } from 'irc-colors';
+import { default as Twitter } from 'twit';
 
-import { ipc, lockPidFile, handleSIGINT, setPingListener } from '../lib/common.mjs';
+import { ipc, lockPidFile, handleSIGINT, setPingListener, getConfig } from '../lib/common.mjs';
 
 lockPidFile(ident);
-
 setPingListener(ipc, ident, 'init');
+
+const config = getConfig(ident);
+if (debug) clog.debug('config', config);
 
 const help = [
   {
@@ -77,6 +80,8 @@ const help = [
     ],
   },
 ];
+
+const twitter = new Twitter(config.twitter);
 
 // Things that need to be done once the ipc is "connected"
 ipc.on('start', () => {
@@ -166,7 +171,9 @@ ipc.subscribe('tu.request', (data) => {
 
 // Twitter search
 ipc.subscribe('tw.request', (data) => {
-
+  const request = JSON.parse(data);
+  if (debug) clog.debug('Twitter request', request);
+  twitterSearch(request);
 });
 
 function googleSearch(request, params) {
@@ -243,4 +250,31 @@ function googleImageSearch(request, params) {
       ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
       return;
     });
+}
+
+function twitterSearch(request) {
+  twitter.get(
+    'search/tweets',
+    {
+      q: request.args,
+      count: 10,
+    },
+    (error, data, response) => {
+      const selectedResult = data.statuses[Math.floor(Math.random() * data.statuses.length)];
+      //clog.debug(selectedResult);
+      clog.debug(selectedResult.created_at);
+      clog.debug(selectedResult.text);
+      clog.debug(selectedResult.user.name);
+      clog.debug(selectedResult.user.screen_name);
+      clog.debug(`https://twitter.com/i/web/status/${selectedResult.id}`);
+      const outputString = `${ircColor.blue(`@${selectedResult.user.screen_name}`)}: ${selectedResult.text} | https://twitter.com/i/web/status/${selectedResult.id_str}`;
+      const reply = {
+        target: request.channel,
+        text: outputString,
+      };
+      if (debug) clog.debug(`Sending reply to: ${request.replyTo}.outgoingMessage`, reply);
+      ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
+      return;
+    },
+  );
 }

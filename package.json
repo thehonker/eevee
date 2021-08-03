@@ -20,6 +20,7 @@
     "needle": "^2.5.0",
     "openweather-apis": "^4.4.1",
     "qlobber-fsq": "^12.0.4",
+    "twit": "^2.2.11",
     "yargs": "^15.3.1"
   },
   "devDependencies": {

@@ -1,0 +1,5 @@
+{
+  youtube: {
+    api_key: '', // Youtube api key
+  },
+}

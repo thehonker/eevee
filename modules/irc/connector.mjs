@@ -115,7 +115,7 @@ clog.debug(`Subscribing to: irc-connector.${moduleInstance}.outgoingMessage`);
 ipc.subscribe(`irc-connector.${moduleInstance}.outgoingMessage`, (data) => {
   const msg = JSON.parse(data);
   if (debug) clog.debug('Received outgoingMessage:', msg);
-  client.say(msg.target, msg.text);
+  if (msg.target && msg.text) client.say(msg.target, msg.text);
 });
 
 // Listen for outgoing actions
@@ -123,7 +123,7 @@ clog.debug(`Subscribing to: irc-connector.${moduleInstance}.outgoingAction`);
 ipc.subscribe(`irc-connector.${moduleInstance}.outgoingAction`, (data) => {
   const msg = JSON.parse(data);
   if (debug) clog.debug('Received outgoingAction:', msg);
-  client.action(msg.target, msg.text);
+  if (msg.target && msg.text) client.action(msg.target, msg.text);
 });
 
 // Listen for whois requests
@@ -131,7 +131,7 @@ clog.debug(`Subscribing to: irc-connector.${moduleInstance}.whoisRequest`);
 ipc.subscribe(`irc-connector.${moduleInstance}.whoisRequest`, (data) => {
   const msg = JSON.parse(data);
   if (debug) clog.debug('Received whoisRequest:', msg);
-  client.whois(msg.target);
+  if (msg.target) client.whois(msg.target);
 });
 
 // Listen for setTopic actions
@@ -139,7 +139,7 @@ clog.debug(`Subscribing to: irc-connector.${moduleInstance}.setTopic`);
 ipc.subscribe(`irc-connector.${moduleInstance}.setTopic`, (data) => {
   const msg = JSON.parse(data);
   if (debug) clog.debug('Received setTopic:', msg);
-  client.setTopic(msg.target, msg.text);
+  if (msg.target && msg.text) client.setTopic(msg.target, msg.text);
 });
 
 // Admin commands

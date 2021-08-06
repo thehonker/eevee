@@ -61,13 +61,17 @@ ipc.subscribe('_broadcast.incomingMessage.#', (data) => {
     if (debug) clog.debug('URL', url);
     fetchTitle(url)
       .then((titleString) => {
-        const reply = {
-          target: request.channel,
-          text: titleString,
-        };
-        if (debug) clog.debug(`Sending reply to: ${request.replyTo}.outgoingMessage`, reply);
-        ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
-        return;
+        if (titleString === null || titleString === undefined || titleString === '') {
+          return;
+        } else {
+          const reply = {
+            target: request.channel,
+            text: titleString,
+          };
+          if (debug) clog.debug(`Sending reply to: ${request.replyTo}.outgoingMessage`, reply);
+          ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
+          return;
+        }
       })
       .catch((error) => {
         clog.error(error);
@@ -78,42 +82,52 @@ ipc.subscribe('_broadcast.incomingMessage.#', (data) => {
 
 function fetchTitle(url) {
   return new Promise((resolve, reject) => {
-    url = url.toString();
-    const ytid = youtubeID(url);
-    if (ytid) {
-      youtube.getById([ytid], (error, response) => {
-        if (error) return reject(error);
-        const title = response.items[0].snippet.title;
-        const date = response.items[0].snippet.publishedAt;
-        const views = response.items[0].statistics.viewCount;
-        const likes = response.items[0].statistics.likeCount;
-        const dislikes = response.items[0].statistics.dislikeCount;
-        const comments = response.items[0].statistics.commentCount;
-        const duration = response.items[0].contentDetails.duration
-          .replace('PT', '')
-          .replace('H', 'h ')
-          .replace('M', 'm ')
-          .replace('S', 's');
-        const ytLogo = ircColor.black.bgwhite('You') + ircColor.white.bgred('Tube');
-        // eslint-disable-next-line prettier/prettier
-        const titleString = `${ytLogo} [${ircColor.blue(title)}] [${duration}] [${ircColor.yellow(views)}] [${ircColor.green(likes)}|${ircColor.red(dislikes)}] [${ircColor.purple(comments)}]`;
-        return resolve(titleString);
-      });
+    // eslint-disable-next-line security/detect-unsafe-regex
+    const fileRegex = new RegExp(
+      '(https?://)?([A-Za-z0-9-]+)?.([A-Za-z0-9-]+).([A-Za-z0-9-]+)(/?.*/(.+.[A-Za-z]{2,3})$)',
+    );
+    if (fileRegex.test(url)) {
+      // TODO: get some info about the file
+      return resolve('');
     } else {
-      needle.get(
-        url,
-        {
-          follow_max: 3,
-        },
-        (error, response) => {
+      url = url.toString();
+      const ytid = youtubeID(url);
+      if (ytid) {
+        youtube.getById([ytid], (error, response) => {
           if (error) return reject(error);
-          const titleRegex = new RegExp('<title.*>(.*)<.*\\/title>');
-          const title = response.body.match(titleRegex);
-          if (title) {
-            return resolve(`[ ${ircColor.blue(title[1])} ]`);
-          }
-        },
-      );
+          const title = response.items[0].snippet.title;
+          const date = response.items[0].snippet.publishedAt;
+          const views = response.items[0].statistics.viewCount;
+          const likes = response.items[0].statistics.likeCount;
+          const dislikes = response.items[0].statistics.dislikeCount;
+          const comments = response.items[0].statistics.commentCount;
+          const duration = response.items[0].contentDetails.duration
+            .replace('PT', '')
+            .replace('H', 'h ')
+            .replace('M', 'm ')
+            .replace('S', 's');
+          const ytLogo = ircColor.black.bgwhite('You') + ircColor.white.bgred('Tube');
+          // eslint-disable-next-line prettier/prettier
+          const titleString = `${ytLogo} [${ircColor.blue(title)}] [${duration}] [${ircColor.yellow(views)}] [${ircColor.green(likes)}|${ircColor.red(dislikes)}] [${ircColor.purple(comments)}]`;
+          return resolve(titleString);
+        });
+      } else {
+        needle.get(
+          url,
+          {
+            follow_max: 3,
+          },
+          (error, response) => {
+            if (error) return reject(error);
+            if (debug) clog.debug(response.body);
+            const titleRegex = new RegExp('<title.*>(.*)<.*\\/title>');
+            const title = response.body.match(titleRegex);
+            if (title) {
+              return resolve(`[ ${ircColor.blue(title[1])} ]`);
+            }
+          },
+        );
+      }
     }
   });
 }

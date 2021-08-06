@@ -9,6 +9,7 @@ import { default as clog } from 'ee-log';
 import { default as YouTube } from 'youtube-node';
 import { default as youtubeID } from 'get-youtube-id';
 import { default as ircColor } from 'irc-colors';
+import { default as needle } from 'needle';
 
 import { ipc, lockPidFile, handleSIGINT, setPingListener, getConfig } from '../lib/common.mjs';
 
@@ -53,30 +54,33 @@ youtube.setKey(config.youtube.api_key);
 
 ipc.subscribe('_broadcast.incomingMessage.#', (data) => {
   const request = JSON.parse(data);
-  const httpsRegex = new RegExp('https?\\S+', 'g');
-  if (httpsRegex.test(request.text)) {
-    if (debug) clog.debug('URL received:', request);
-    const url = request.text.match(httpsRegex);
-    if (debug) clog.debug('URL', url);
-    fetchTitle(url)
-      .then((titleString) => {
-        const reply = {
-          target: request.channel,
-          text: titleString,
-        };
-        if (debug) clog.debug(`Sending reply to: ${request.replyTo}.outgoingMessage`, reply);
-        ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
-        return;
-      })
-      .catch((error) => {
-        clog.error(error);
-        return;
-      });
+  if (request.channel === '#botspam') {
+    const httpsRegex = new RegExp('https?\\S+', 'g');
+    if (httpsRegex.test(request.text)) {
+      if (debug) clog.debug('URL received:', request);
+      const url = request.text.match(httpsRegex);
+      if (debug) clog.debug('URL', url);
+      fetchTitle(url)
+        .then((titleString) => {
+          const reply = {
+            target: request.channel,
+            text: titleString,
+          };
+          if (debug) clog.debug(`Sending reply to: ${request.replyTo}.outgoingMessage`, reply);
+          ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
+          return;
+        })
+        .catch((error) => {
+          clog.error(error);
+          return;
+        });
+    }
   }
 });
 
 function fetchTitle(url) {
   return new Promise((resolve, reject) => {
+    url = url.toString();
     const ytid = youtubeID(url);
     if (ytid) {
       youtube.getById([ytid], (error, response) => {
@@ -107,7 +111,22 @@ function fetchTitle(url) {
         return resolve(titleString);
       });
     } else {
-      return resolve();
+      needle.get(
+        url,
+        {
+          follow_max: 3,
+        },
+        (error, response) => {
+          if (error) return reject(error);
+          clog.debug(response.body);
+          const titleRegex = new RegExp('<title.*>(.*)<.*\\/title>');
+          const title = response.body.match(titleRegex);
+          if (title) {
+            clog.debug(title[1]);
+            return resolve(`[ ${ircColor.blue(title[1])} ]`);
+          }
+        },
+      );
     }
   });
 }

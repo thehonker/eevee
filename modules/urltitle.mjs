@@ -84,23 +84,25 @@ function fetchTitle(url) {
   return new Promise((resolve, reject) => {
     // eslint-disable-next-line security/detect-unsafe-regex
     const fileRegex = new RegExp(
-      '(https?://)?([A-Za-z0-9-]+)?.([A-Za-z0-9-]+).([A-Za-z0-9-]+)(/?.*/(.+.[A-Za-z]{2,3})$)',
+      '/(https?:\/\/)?([A-Za-z0-9\-]+)?\.([A-Za-z0-9\-]+)\.([A-Za-z0-9\-]+)(\/?.*\/(.+\.[A-Za-z]{2,3})$)/gm',
     );
     if (fileRegex.test(url)) {
       // TODO: get some info about the file
+      if (debug) clog.debug('url matched file regex');
       return resolve('');
     } else {
       url = url.toString();
       const ytid = youtubeID(url);
+      if (debug) clog.debug('ytid', ytid);
       if (ytid) {
         youtube.getById([ytid], (error, response) => {
           if (error) return reject(error);
           const title = response.items[0].snippet.title;
           const date = response.items[0].snippet.publishedAt;
-          const views = response.items[0].statistics.viewCount;
-          const likes = response.items[0].statistics.likeCount;
-          const dislikes = response.items[0].statistics.dislikeCount;
-          const comments = response.items[0].statistics.commentCount;
+          const views = Number(response.items[0].statistics.viewCount).toLocaleString();
+          const likes = Number(response.items[0].statistics.likeCount).toLocaleString();
+          const dislikes = Number(response.items[0].statistics.dislikeCount).toLocaleString();
+          const comments = Number(response.items[0].statistics.commentCount).toLocaleString();
           const duration = response.items[0].contentDetails.duration
             .replace('PT', '')
             .replace('H', 'h ')

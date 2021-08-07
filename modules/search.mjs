@@ -25,6 +25,7 @@ import { default as clog } from 'ee-log';
 import { default as google } from 'googlethis';
 import { default as ircColor } from 'irc-colors';
 import { default as Twitter } from 'twit';
+import { default as YouTube } from 'youtube-node';
 
 import { ipc, lockPidFile, handleSIGINT, setPingListener, getConfig } from '../lib/common.mjs';
 
@@ -93,6 +94,8 @@ const help = [
 ];
 
 const twitter = new Twitter(config.twitter);
+const youtube = new YouTube();
+youtube.setKey(config.youtube.api_key);
 
 // Things that need to be done once the ipc is "connected"
 ipc.on('start', () => {
@@ -178,6 +181,12 @@ ipc.subscribe('tu.request', (data) => {
     },
   };
   googleImageSearch(request, params);
+});
+
+ipc.subscribe('yt.request', (data) => {
+  const request = JSON.parse(data);
+  if (debug) clog.debug('YouTube search', request);
+  youtubeSearch(request);
 });
 
 // Twitter search
@@ -296,4 +305,23 @@ function twitterSearch(request) {
       }
     },
   );
+}
+
+function youtubeSearch(request) {
+  youtube.search(request.args, 10, (error, response) => {
+    if (error) {
+      clog.error(error);
+      return;
+    }
+    const selectedResult = response.items[Math.floor(Math.random() * response.items.length)];
+    clog.debug(selectedResult);
+    const outputString = `Found ${request.args}: https://youtu.be/${selectedResult.id.videoId}`;
+    const reply = {
+      target: request.channel,
+      text: outputString,
+    };
+    if (debug) clog.debug(`Sending reply to: ${request.replyTo}.outgoingMessage`, reply);
+    ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
+    return;
+  });
 }

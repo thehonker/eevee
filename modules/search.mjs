@@ -91,6 +91,17 @@ const help = [
       },
     ],
   },
+  {
+    command: 'yt',
+    descr: 'YouTube search',
+    params: [
+      {
+        param: 'query',
+        required: true,
+        descr: 'The search to run',
+      },
+    ],
+  },
 ];
 
 const twitter = new Twitter(config.twitter);

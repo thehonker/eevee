@@ -295,24 +295,28 @@ function twitterSearch(request) {
         clog.error(error);
         return;
       } else {
-        const selectedResult = data.statuses[Math.floor(Math.random() * data.statuses.length)];
-        /* D
-        clog.debug(selectedResult);
-        clog.debug(selectedResult.created_at);
-        clog.debug(selectedResult.text);
-        clog.debug(selectedResult.user.name);
-        clog.debug(selectedResult.user.screen_name);
-        clog.debug(`https://twitter.com/i/web/status/${selectedResult.id}`);
-        */
-        // eslint-disable-next-line prettier/prettier
-        const outputString = `${ircColor.blue(`@${selectedResult.user.screen_name}`)}: ${selectedResult.text} | https://twitter.com/i/web/status/${selectedResult.id_str}`;
-        const reply = {
-          target: request.channel,
-          text: outputString,
-        };
-        if (debug) clog.debug(`Sending reply to: ${request.replyTo}.outgoingMessage`, reply);
-        ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
-        return;
+        if (data.statuses) {
+          const selectedResult = data.statuses[Math.floor(Math.random() * data.statuses.length)];
+          if (selectedResult.user) {
+            /* D
+          clog.debug(selectedResult);
+          clog.debug(selectedResult.created_at);
+          clog.debug(selectedResult.text);
+          clog.debug(selectedResult.user.name);
+          clog.debug(selectedResult.user.screen_name);
+          clog.debug(`https://twitter.com/i/web/status/${selectedResult.id}`);
+          */
+            // eslint-disable-next-line prettier/prettier
+            const outputString = `${ircColor.blue(`@${selectedResult.user.screen_name}`)}: ${selectedResult.text} | https://twitter.com/i/web/status/${selectedResult.id_str}`;
+            const reply = {
+              target: request.channel,
+              text: outputString,
+            };
+            if (debug) clog.debug(`Sending reply to: ${request.replyTo}.outgoingMessage`, reply);
+            ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
+            return;
+          }
+        }
       }
     },
   );
@@ -324,15 +328,17 @@ function youtubeSearch(request) {
       clog.error(error);
       return;
     }
-    const selectedResult = response.items[Math.floor(Math.random() * response.items.length)];
-    clog.debug(selectedResult);
-    const outputString = `Found ${request.args}: https://youtu.be/${selectedResult.id.videoId}`;
-    const reply = {
-      target: request.channel,
-      text: outputString,
-    };
-    if (debug) clog.debug(`Sending reply to: ${request.replyTo}.outgoingMessage`, reply);
-    ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
-    return;
+    if (response.items) {
+      const selectedResult = response.items[Math.floor(Math.random() * response.items.length)];
+      clog.debug(selectedResult);
+      const outputString = `Found ${request.args}: https://youtu.be/${selectedResult.id.videoId}`;
+      const reply = {
+        target: request.channel,
+        text: outputString,
+      };
+      if (debug) clog.debug(`Sending reply to: ${request.replyTo}.outgoingMessage`, reply);
+      ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
+      return;
+    }
   });
 }

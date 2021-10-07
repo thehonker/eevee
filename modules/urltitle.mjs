@@ -57,7 +57,7 @@ ipc.subscribe('_broadcast.incomingMessage.#', (data) => {
   const httpsRegex = new RegExp('https?\\S+', 'g');
   if (httpsRegex.test(request.text)) {
     if (debug) clog.debug('URL received:', request);
-    const url = request.text.match(httpsRegex);
+    const url = request.text.match(httpsRegex)[0];
     if (debug) clog.debug('URL', url);
     fetchTitle(url)
       .then((titleString) => {
@@ -84,7 +84,8 @@ function fetchTitle(url) {
   return new Promise((resolve, reject) => {
     // eslint-disable-next-line security/detect-unsafe-regex
     const fileRegex = new RegExp(
-      '/(https?:\/\/)?([A-Za-z0-9\-]+)?\.([A-Za-z0-9\-]+)\.([A-Za-z0-9\-]+)(\/?.*\/(.+\.[A-Za-z]{2,3})$)/gm',
+      '(https?:\/\/)?([A-Za-z0-9\-]+)?\.([A-Za-z0-9\-]+)\.([A-Za-z0-9\-]+)(\/?.*\/(.+\.[A-Za-z]{2,3,4})$)',
+      'g',
     );
     if (fileRegex.test(url)) {
       // TODO: get some info about the file
@@ -122,10 +123,12 @@ function fetchTitle(url) {
           (error, response) => {
             if (error) return reject(error);
             if (debug) clog.debug(response.body);
-            const titleRegex = new RegExp('<title.*>(.*)<.*\\/title>');
-            const title = response.body.match(titleRegex);
-            if (title) {
-              return resolve(`[ ${ircColor.blue(title[1])} ]`);
+            if (typeof response.body === 'string') {
+              const titleRegex = new RegExp('<title.*>(.*)<.*\\/title>');
+              const title = response.body.match(titleRegex);
+              if (title) {
+                return resolve(`[ ${ircColor.blue(title[1])} ]`);
+              }
             }
           },
         );

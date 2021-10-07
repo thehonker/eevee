@@ -86,11 +86,11 @@ client.on('registered', () => {
           return;
         }
         return new Promise((resolve) => {
-          setTimeout(resolve, 1000);
+          setTimeout(resolve, 2000);
         });
       });
     });
-  }, 2000);
+  }, 10000);
 });
 
 // This makes a /lot/ of noise

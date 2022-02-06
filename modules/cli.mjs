@@ -231,7 +231,7 @@ function init(argv) {
         return;
       })
       .catch((err) => {
-        clog.error(err);
+        clog.error(JSON.stringify(err, null, 2));
         exit(ident, 1);
         return 1;
       });

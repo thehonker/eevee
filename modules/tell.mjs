@@ -158,82 +158,94 @@ ipc.subscribe('tell.request', (data) => {
   setPingListener(ipc, moduleFullIdent, 'running');
   const request = JSON.parse(data);
   if (debug) clog.debug('Tell request received', request);
-
-  const toUser = request.args.split(' ')[0];
-  const message = request.args
-    .split(' ')
-    .slice(1)
-    .join(' ');
-
-  const newTellData = {
-    id: request.id,
-    dateSent: new Date().toISOString(),
-    fromConnector: request.replyTo,
-    fromChannel: request.channel,
-    fromIdent: request.ident,
-    fromUser: request.nick,
-    toUser: toUser,
-    platform: request.platform,
-    message: message,
-    pm: 0,
-    delivered: 0,
-    dateDelivered: null,
-  };
-
-  var replyText = null;
   try {
+    const toUser = request.args.split(' ')[0].toLowerCase();
+    const message = request.args
+      .split(' ')
+      .slice(1)
+      .join(' ');
+
+    const newTellData = {
+      id: request.id,
+      dateSent: new Date().toISOString(),
+      fromConnector: request.replyTo,
+      fromChannel: request.channel,
+      fromIdent: request.ident,
+      fromUser: request.nick,
+      toUser: toUser,
+      platform: request.platform,
+      message: message,
+      pm: 0,
+      delivered: 0,
+      dateDelivered: null,
+    };
+
+    var replyText = null;
     addTell.run(newTellData);
-  } catch (err) {
-    replyText = `Saving message ${data.id} failed! ${err.message}`;
+    replyText = `${request.nick}: Message to ${toUser} saved! (ID: ${data.id})`;
     if (request.platform === 'irc') {
-      replyText = ircColor.red(`Saving message ${data.id} failed: ${err.message}`);
+      replyText = `${request.nick}: ${ircColor.green(`Message to ${toUser} saved (ID: ${request.id})`)}`;
     }
     const reply = {
       target: request.channel,
       text: replyText,
     };
-    if (debug) clog.debug('Sending fail message', reply);
+    if (debug) clog.debug('Sending ack message', reply);
     ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
+    setPingListener(ipc, moduleFullIdent, 'listening');
+  } catch (error) {
+    replyText = `Saving message ${data.id} failed! ${error.message}`;
+    if (request.platform === 'irc') {
+      replyText = ircColor.red(`Saving message ${data.id} failed: ${error.message}`);
+    }
+    const reply = {
+      target: request.channel,
+      text: replyText,
+    };
+    ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
+    setPingListener(ipc, moduleFullIdent, 'errorRecovered');
     return;
   }
-  replyText = `${request.nick}: Message to ${toUser} saved! (ID: ${data.id})`;
-  if (request.platform === 'irc') {
-    replyText = `${request.nick}: ${ircColor.green(`Message to ${toUser} saved (ID: ${request.id})`)}`;
-  }
-  const reply = {
-    target: request.channel,
-    text: replyText,
-  };
-  if (debug) clog.debug('Sending ack message', reply);
-  ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
-  setPingListener(ipc, moduleFullIdent, 'listening');
 });
 
 ipc.subscribe('rmtell.request', (data) => {
   setPingListener(ipc, moduleFullIdent, 'running');
   const request = JSON.parse(data);
   if (debug) clog.debug('rmtell request received', request);
-  const id = request.args.split(' ')[0];
-  var replyText = null;
-  const tellById = findTellByID.get({ id });
-  if (tellById) {
-    if (request.ident === tellById.fromIdent) {
-      removeTellByID.run({ id: id });
-      replyText = `${request.nick}: Message with ID ${id} deleted`;
-      if (request.platform === 'irc') {
-        // eslint-disable-next-line prettier/prettier
-        replyText = `${request.nick}: ${ircColor.blue(`Message with ID ${id} deleted`)}`;
+  try {
+    const id = request.args.split(' ')[0];
+    var replyText = null;
+    const tellById = findTellByID.get({ id });
+    if (tellById) {
+      if (request.ident === tellById.fromIdent) {
+        removeTellByID.run({ id: id });
+        replyText = `${request.nick}: Message with ID ${id} deleted`;
+        if (request.platform === 'irc') {
+          // eslint-disable-next-line prettier/prettier
+          replyText = `${request.nick}: ${ircColor.blue(`Message with ID ${id} deleted`)}`;
+        }
+        let reply = {
+          target: request.channel,
+          text: replyText,
+        };
+        ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
+      } else {
+        replyText = `${request.nick}: Message with ID ${id} was not sent by you`;
+        if (request.platform === 'irc') {
+          // eslint-disable-next-line prettier/prettier
+          replyText = `${request.nick}: ${ircColor.red(`Message with ID ${id} was not sent by you`)}`;
+        }
+        let reply = {
+          target: request.channel,
+          text: replyText,
+        };
+        ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
       }
-      let reply = {
-        target: request.channel,
-        text: replyText,
-      };
-      ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
     } else {
-      replyText = `${request.nick}: Message with ID ${id} was not sent by you`;
+      replyText = `${request.nick}: Message with ID ${id} was not found`;
       if (request.platform === 'irc') {
         // eslint-disable-next-line prettier/prettier
-        replyText = `${request.nick}: ${ircColor.red(`Message with ID ${id} was not sent by you`)}`;
+        replyText = `${request.nick}: ${ircColor.red(`Message with ID ${id} was not found`)}`;
       }
       let reply = {
         target: request.channel,
@@ -241,18 +253,19 @@ ipc.subscribe('rmtell.request', (data) => {
       };
       ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
     }
-  } else {
-    replyText = `${request.nick}: Message with ID ${id} was not found`;
+    setPingListener(ipc, moduleFullIdent, 'listening');
+  } catch (error) {
+    replyText = `Removing message ${data.id} failed! ${error.message}`;
     if (request.platform === 'irc') {
-      // eslint-disable-next-line prettier/prettier
-      replyText = `${request.nick}: ${ircColor.red(`Message with ID ${id} was not found`)}`;
+      replyText = ircColor.red(`Removing message ${data.id} failed: ${error.message}`);
     }
-    let reply = {
+    const reply = {
       target: request.channel,
       text: replyText,
     };
     ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
-    setPingListener(ipc, moduleFullIdent, 'listening');
+    setPingListener(ipc, moduleFullIdent, 'errorRecovered');
+    return;
   }
 });
 
@@ -261,11 +274,12 @@ ipc.subscribe('_broadcast.incomingMessage.#', (data) => {
   setPingListener(ipc, moduleFullIdent, 'running');
   const message = JSON.parse(data);
   if (debug) clog.debug(message);
-  if (debug) clog.debug(`Checking if user ${message.nick} has any tells`);
-  const tells = findTellByUser.all({ toUser: message.nick });
+  const lowercaseNick = message.nick.toLowerCase();
+  if (debug) clog.debug(`Checking if user ${lowercaseNick} has any tells`);
+  const tells = findTellByUser.all({ toUser: lowercaseNick });
   var replyText = '';
   if (tells.length) {
-    if (debug) clog.debug(`Found tells for user ${message.nick}`, tells);
+    if (debug) clog.debug(`Found tells for user ${lowercaseNick}`, tells);
     for (let i = 0; i < tells.length; i++) {
       // eslint-disable-next-line security/detect-object-injection
       let tell = tells[i];

@@ -104,6 +104,8 @@ const help = [
   },
 ];
 
+const recentResults = [];
+
 const twitter = new Twitter(config.twitter);
 const youtube = new YouTube();
 youtube.setKey(config.youtube.api_key);
@@ -212,11 +214,30 @@ function googleSearch(request, params) {
   google
     .search(request.args, params)
     .then((results) => {
-      if (debug) clog.debug(results);
       if (results.length != 0) {
-        const selectedResult = results.results[Math.floor(Math.random() * results.results.length)];
-        clog.error(selectedResult);
-        clog.debug(selectedResult.title, selectedResult.url);
+        var selectedResult = results.results[0];
+        if (config.excludeRecent) {
+          var i = 0;
+          while (recentResults.includes(selectedResult.url) && i <= results.results.length) {
+            if (i === results.results.length) {
+              outputString = ircColor.red('No more results');
+              const reply = {
+                target: request.channel,
+                text: outputString,
+              };
+              if (debug) clog.debug(`Sending reply to: ${request.replyTo}.outgoingMessage`, reply);
+              ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
+              return;
+            }
+            i++;
+            clog.debug('Cache hit, re-selecting', selectedResult.url, i, recentResults.length);
+            selectedResult = results.results[Math.floor(Math.random() * results.results.length)];
+          }
+          recentResults.unshift(selectedResult.url);
+          recentResults.length = config.excludeRecentNumber;
+          clog.debug('Recent results', recentResults);
+        }
+        clog.debug('Selected result', selectedResult.title, selectedResult.url);
         if (request.platform === 'irc') {
           outputString = `${ircColor.blue(selectedResult.title)} | ${selectedResult.url}`;
         } else {
@@ -252,7 +273,28 @@ function googleImageSearch(request, params) {
       if (debug) clog.debug(results);
       var outputString = '';
       if (results.length != 0) {
-        const selectedResult = results[Math.floor(Math.random() * results.length)];
+        var selectedResult = results[0];
+        if (config.excludeRecent) {
+          var i = 0;
+          while (recentResults.includes(selectedResult.url) && i <= results.length) {
+            if (i === results.length) {
+              outputString = ircColor.red('No more results');
+              const reply = {
+                target: request.channel,
+                text: outputString,
+              };
+              if (debug) clog.debug(`Sending reply to: ${request.replyTo}.outgoingMessage`, reply);
+              ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
+              return;
+            }
+            i++;
+            clog.debug('Cache hit, re-selecting', selectedResult.url, i, recentResults.length);
+            selectedResult = results[Math.floor(Math.random() * results.length)];
+          }
+          recentResults.unshift(selectedResult.url);
+          recentResults.length = config.excludeRecentNumber;
+          clog.debug('Recent results', recentResults);
+        }
         clog.error(selectedResult);
         clog.debug(selectedResult.title, selectedResult.url);
         if (request.platform === 'irc') {
@@ -288,7 +330,7 @@ function twitterSearch(request) {
     'search/tweets',
     {
       q: request.args,
-      count: 10,
+      count: 25,
     },
     (error, data) => {
       if (error) {
@@ -296,7 +338,30 @@ function twitterSearch(request) {
         return;
       } else {
         if (data.statuses) {
-          const selectedResult = data.statuses[Math.floor(Math.random() * data.statuses.length)];
+          var outputString = '';
+          var selectedResult = data.statuses[0];
+          if (config.excludeRecent) {
+            var i = 0;
+            while (recentResults.includes(selectedResult.id) && i <= data.statuses.length) {
+              if (i === data.statuses.length) {
+                outputString = ircColor.red('No more results');
+                const reply = {
+                  target: request.channel,
+                  text: outputString,
+                };
+                if (debug) clog.debug(`Sending reply to: ${request.replyTo}.outgoingMessage`, reply);
+                ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
+                return;
+              }
+              i++;
+              clog.debug('Cache hit, re-selecting', selectedResult.url, i, recentResults.length);
+              selectedResult = data.statuses[Math.floor(Math.random() * data.statuses.length)];
+            }
+            recentResults.unshift(selectedResult.id);
+            recentResults.length = config.excludeRecentNumber;
+            clog.debug('Recent results', recentResults);
+          }
+
           if (selectedResult.user) {
             /* D
           clog.debug(selectedResult);
@@ -307,7 +372,7 @@ function twitterSearch(request) {
           clog.debug(`https://twitter.com/i/web/status/${selectedResult.id}`);
           */
             // eslint-disable-next-line prettier/prettier
-            const outputString = `${ircColor.blue(`@${selectedResult.user.screen_name}`)}: ${selectedResult.text} | https://twitter.com/i/web/status/${selectedResult.id_str}`;
+            outputString = `${ircColor.blue(`@${selectedResult.user.screen_name}`)}: ${selectedResult.text.split('\n')[0]} | https://twitter.com/i/web/status/${selectedResult.id_str}`;
             const reply = {
               target: request.channel,
               text: outputString,
@@ -323,15 +388,38 @@ function twitterSearch(request) {
 }
 
 function youtubeSearch(request) {
-  youtube.search(request.args, 10, (error, response) => {
+  youtube.search(request.args, 25, (error, response) => {
     if (error) {
       clog.error(error);
       return;
     }
     if (response.items) {
-      const selectedResult = response.items[Math.floor(Math.random() * response.items.length)];
+      var outputString = '';
+      var selectedResult = response.items[0];
+      if (config.excludeRecent) {
+        var i = 0;
+        while (recentResults.includes(selectedResult.id.videoId) && i <= response.items.length) {
+          i++;
+          if (i === response.items.length) {
+            outputString = ircColor.red('No more results');
+            const reply = {
+              target: request.channel,
+              text: outputString,
+            };
+            if (debug) clog.debug(`Sending reply to: ${request.replyTo}.outgoingMessage`, reply);
+            ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
+            return;
+          }
+          clog.debug('Cache hit, re-selecting', selectedResult.id.videoId, i, recentResults.length);
+          selectedResult = response.items[Math.floor(Math.random() * response.items.length)];
+        }
+        recentResults.unshift(selectedResult.id.videoId);
+        recentResults.length = config.excludeRecentNumber;
+        clog.debug('Recent results', recentResults);
+      }
+
       clog.debug(selectedResult);
-      const outputString = `Found ${request.args}: https://youtu.be/${selectedResult.id.videoId}`;
+      outputString = `Found ${request.args}: https://youtu.be/${selectedResult.id.videoId}`;
       const reply = {
         target: request.channel,
         text: outputString,

@@ -10,4 +10,6 @@
   youtube: {
     api_key: '', // Youtube api key
   },
+  excludeRecent: true,
+  excludeRecentNumber: 50,
 }

@@ -214,12 +214,14 @@ function googleSearch(request, params) {
   google
     .search(request.args, params)
     .then((results) => {
+      results = results.results;
       if (results.length != 0) {
-        var selectedResult = results.results[0];
+        var selectedResult = results[0];
         if (config.excludeRecent) {
           var i = 0;
-          while (recentResults.includes(selectedResult.url) && i <= results.results.length) {
-            if (i === results.results.length) {
+          // eslint-disable-next-line prettier/prettier
+          while ((recentResults.includes(selectedResult.url) || selectedResult.url.length > 125) && i <= results.length) {
+            if (i === results.length) {
               outputString = ircColor.red('No more results');
               const reply = {
                 target: request.channel,
@@ -231,7 +233,7 @@ function googleSearch(request, params) {
             }
             i++;
             clog.debug('Cache hit, re-selecting', selectedResult.url, i, recentResults.length);
-            selectedResult = results.results[Math.floor(Math.random() * results.results.length)];
+            selectedResult = results[Math.floor(Math.random() * results.length)];
           }
           recentResults.unshift(selectedResult.url);
           recentResults.length = config.excludeRecentNumber;
@@ -270,13 +272,14 @@ function googleImageSearch(request, params) {
   google
     .image(request.args, params)
     .then((results) => {
-      if (debug) clog.debug(results);
+      if (debug) clog.debug('Results', results);
       var outputString = '';
       if (results.length != 0) {
         var selectedResult = results[0];
         if (config.excludeRecent) {
           var i = 0;
-          while (recentResults.includes(selectedResult.url) && i <= results.length) {
+          // eslint-disable-next-line prettier/prettier
+          while ((recentResults.includes(selectedResult.origin.title) || selectedResult.url.length > 125) && i <= results.length) {
             if (i === results.length) {
               outputString = ircColor.red('No more results');
               const reply = {
@@ -291,16 +294,15 @@ function googleImageSearch(request, params) {
             clog.debug('Cache hit, re-selecting', selectedResult.url, i, recentResults.length);
             selectedResult = results[Math.floor(Math.random() * results.length)];
           }
-          recentResults.unshift(selectedResult.url);
+          recentResults.unshift(selectedResult.origin.title);
           recentResults.length = config.excludeRecentNumber;
           clog.debug('Recent results', recentResults);
         }
-        clog.error(selectedResult);
-        clog.debug(selectedResult.title, selectedResult.url);
+        clog.debug('selected result', selectedResult.origin.title, selectedResult.url);
         if (request.platform === 'irc') {
           outputString = `${ircColor.blue(selectedResult.origin.title)} | ${selectedResult.url}`;
         } else {
-          outputString = `${selectedResult.origin.title} | ${selectedResult.link}`;
+          outputString = `${selectedResult.origin.title} | ${selectedResult.url}`;
         }
       } else {
         outputString = ircColor.red('No results?!?!');

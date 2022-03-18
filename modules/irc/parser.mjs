@@ -90,8 +90,6 @@ ipc.subscribe(`irc-parser.${moduleInstance}.incomingMessage`, (data) => {
   };
   if (debug) clog.debug('Parsed message:', msg);
 
-  ipc.publish(`_broadcast.incomingMessage.${msg.platform}.${msg.replyTo}`, JSON.stringify(msg));
-
   if (msg.text === '.bots') {
     const reply = {
       target: msg.channel,
@@ -118,6 +116,7 @@ ipc.subscribe(`irc-parser.${moduleInstance}.incomingMessage`, (data) => {
     if (isAllowedCommand(msg.command)) {
       if (debug) clog.debug('Received command:', msg.command + ' ' + msg.args);
       ipc.publish(`${msg.command}.request`, JSON.stringify(msg));
+      ipc.publish(`_broadcast.incomingMessage.${msg.platform}.${msg.replyTo}`, JSON.stringify(msg));
     }
   } else if (msg.text.split(' ')[0] === `${config.client.nick}:`) {
     clog.debug('nick prefix matched!');
@@ -133,8 +132,10 @@ ipc.subscribe(`irc-parser.${moduleInstance}.incomingMessage`, (data) => {
     if (isAllowedCommand(msg.command)) {
       if (debug) clog.debug('Received command:', msg.command + ' ' + msg.args);
       ipc.publish(`${msg.command}.request`, JSON.stringify(msg));
+      ipc.publish(`_broadcast.incomingMessage.${msg.platform}.${msg.replyTo}`, JSON.stringify(msg));
     }
   } else {
     // Foo
+    ipc.publish(`_broadcast.incomingMessage.${msg.platform}.${msg.replyTo}`, JSON.stringify(msg));
   }
 });

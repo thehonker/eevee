@@ -10,6 +10,7 @@ import { default as sqlite3 } from 'better-sqlite3';
 import { default as needle } from 'needle';
 import { default as imgur } from 'imgur';
 import { default as mathjs } from 'mathjs';
+import { default as yargs } from 'yargs';
 
 import { ipc, lockPidFile, handleSIGINT, getConfig, getDirName, setPingListener } from '../lib/common.mjs';
 
@@ -41,8 +42,13 @@ if (debug) clog.debug('Config', config);
 const help = [
   {
     command: 'weather',
-    descr: 'Fetch weather, optionally setting location',
+    descr: 'Fetch weather, optionally setting location and units (-r to reset)',
     params: [
+      {
+        param: '-(c,f,r)',
+        required: false,
+        descr: 'Set units or reset to default of units-by-location',
+      },
       {
         param: 'location',
         required: false,
@@ -165,28 +171,67 @@ const dbSetUpdateWeatherLocation = db.prepare(
 `,
 );
 
+const dbSetUpdateUnits = db.prepare(
+  `INSERT INTO ${tableName} (
+    nick,
+    dateSet,
+    units
+  )
+  VALUES (
+    @nick,
+    @dateSet,
+    @units
+  )
+  ON CONFLICT (nick) DO UPDATE SET
+    dateSet = @dateSet,
+    units = @units  
+`,
+);
+
 // IPC Listeners
 ipc.subscribe('weather.request', (data) => {
   const request = JSON.parse(data);
   if (debug) clog.debug('weather request received', request);
 
-  if (request.args.split(' ')[0] != '') {
-    createUpdateWeatherLocation(request.args, request.nick)
-      .then((dbInsertResult) => {
-        if (debug) clog.debug(dbInsertResult);
-        weather(request);
-        return;
-      })
-      .catch((err) => {
+  const args = yargs.boolean(['c', 'f']).parse(request.args.split(' '));
+  clog.debug('parsed args', args);
+
+  var units = 'F'; // Will be overridden
+
+  if (args.c || args.f || args.r) {
+    // Update units
+    if (args.r) {
+      setUpdateUnits(null, request.nick);
+    } else {
+      units = args.c ? 'C' : 'F';
+      clog.debug('units', units);
+      try {
+        setUpdateUnits(units, request.nick);
+      } catch (err) {
         clog.error(err);
-        const reply = {
-          target: request.channel,
-          text: `Error setting weather location: ${err.code}`,
-        };
-        if (debug) clog.debug(reply);
-        ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
-        return;
-      });
+      }
+    }
+  }
+
+  if (args._[0]) {
+    if (args._[0].length != 0) {
+      createUpdateWeatherLocation(args._.join(' '), request.nick)
+        .then((dbInsertResult) => {
+          if (debug) clog.debug(dbInsertResult);
+          weather(request);
+          return;
+        })
+        .catch((err) => {
+          clog.error(err);
+          const reply = {
+            target: request.channel,
+            text: `Error setting weather location: ${err.code}`,
+          };
+          if (debug) clog.debug(reply);
+          ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
+          return;
+        });
+    }
   } else {
     weather(request);
     return;
@@ -205,8 +250,16 @@ function weather(request) {
       .then((response) => {
         const weather = response.weather;
         const aqi = response.aqi;
-        if (debug) clog.debug(weather, aqi);
+        if (debug) clog.debug('weather', weather);
+        if (debug) clog.debug('aqi', aqi);
         var string = '';
+        if (userData.units === null) {
+          if (weather.sys.country === 'US' || weather.sys.country === 'PR') {
+            userData.units = 'F';
+          } else {
+            userData.units = 'C';
+          }
+        }
         const tempString = formatTempString(weather.main.temp, userData.units, request.platform);
         const descriptionString = formatDescriptionString(
           weather.weather[0].description,
@@ -319,6 +372,7 @@ function weatherMap(data) {
 // Helper functions
 function createUpdateWeatherLocation(locationSearch, nick) {
   return new Promise((resolve, reject) => {
+    locationSearch = locationSearch.replace(',', ' ');
     const locationApiUrl = `http://api.openweathermap.org/geo/1.0/direct?q=${locationSearch}&limit=1&appid=${config.apiKey}`;
     if (debug) clog.debug(locationApiUrl);
     needle.get(locationApiUrl, (err, response) => {
@@ -346,7 +400,14 @@ function createUpdateWeatherLocation(locationSearch, nick) {
             lat: response.body[0].lat,
             lon: response.body[0].lon,
           };
-          const dbInsertResult = dbSetUpdateWeatherLocation.run(insert);
+          var dbInsertResult = null;
+          try {
+            dbInsertResult = dbSetUpdateWeatherLocation.run(insert);
+          } catch (err) {
+            err.code = 'E_DB_INSERT_FAILED';
+            clog.error(err);
+            return reject(err);
+          }
           if (debug) clog.debug(dbInsertResult);
           return resolve(dbInsertResult);
         }
@@ -357,6 +418,26 @@ function createUpdateWeatherLocation(locationSearch, nick) {
         return reject(err);
       }
     });
+  });
+}
+
+function setUpdateUnits(units, nick) {
+  return new Promise((resolve, reject) => {
+    const insert = {
+      nick: nick,
+      dateSet: new Date().toISOString(),
+      units: units,
+    };
+    var dbInsertResult = null;
+    try {
+      dbInsertResult = dbSetUpdateUnits.run(insert);
+    } catch (err) {
+      err.code = 'E_DB_INSERT_FAILED';
+      clog.error(err);
+      return reject(err);
+    }
+    if (debug) clog.debug(dbInsertResult);
+    return resolve(dbInsertResult);
   });
 }
 
@@ -480,7 +561,11 @@ function kelvin2fahrenheit(degrees) {
 }
 
 function mps2mph(speed) {
-  return Math.round(((speed * 3600) / 1610.3) * 1000) / 1000;
+  return Math.round((((speed * 3600) / 1610.3) * 1000) / 1000);
+}
+
+function mps2kmh(speed) {
+  return Math.round((speed / 1000) * 3600);
 }
 
 function formatTempString(degK, units, platform) {
@@ -599,25 +684,27 @@ function formatWindString(speed, gust, degrees, units, platform) {
   if (units === 'C') {
     if (platform === 'irc') {
       for (let i = 0; i < speedArray.length; i++) {
+        // eslint-disable-next-line security/detect-object-injection
+        speedArray[i] = mps2kmh(speedArray[i]);
         switch (true) {
           // eslint-disable-next-line security/detect-object-injection
-          case speedArray[i] <= 10:
+          case speedArray[i] <= 20:
             // eslint-disable-next-line security/detect-object-injection
-            speedArray[i] = ircColor.green(`${speedArray[i]}m/s`);
+            speedArray[i] = ircColor.green(`${speedArray[i]}km/h`);
             break;
           // eslint-disable-next-line security/detect-object-injection
-          case speedArray[i] >= 10 && speedArray[i] <= 20:
+          case speedArray[i] >= 20 && speedArray[i] <= 40:
             // eslint-disable-next-line security/detect-object-injection
-            speedArray[i] = ircColor.blue(`${speedArray[i]}m/s`);
+            speedArray[i] = ircColor.blue(`${speedArray[i]}km/h`);
             break;
           // eslint-disable-next-line security/detect-object-injection
-          case speedArray[i] >= 20:
+          case speedArray[i] >= 40:
             // eslint-disable-next-line security/detect-object-injection
-            speedArray[i] = ircColor.red(`${speedArray[i]}m/s`);
+            speedArray[i] = ircColor.red(`${speedArray[i]}km/h`);
             break;
           default:
             // eslint-disable-next-line security/detect-object-injection
-            speedArray[i] = `${speedArray[i]}m/s`;
+            speedArray[i] = `${speedArray[i]}km/h`;
             break;
         }
       }

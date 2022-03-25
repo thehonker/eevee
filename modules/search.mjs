@@ -26,6 +26,7 @@ import { default as google } from 'googlethis';
 import { default as ircColor } from 'irc-colors';
 import { default as Twitter } from 'twit';
 import { default as YouTube } from 'youtube-node';
+import { default as urbanDict } from 'relevant-urban';
 
 import { ipc, lockPidFile, handleSIGINT, setPingListener, getConfig } from '../lib/common.mjs';
 
@@ -33,7 +34,7 @@ lockPidFile(ident);
 setPingListener(ipc, ident, 'init');
 
 const config = getConfig(ident);
-if (debug) clog.debug('config', config);
+// if (debug) clog.debug('config', config);
 
 const help = [
   {
@@ -102,9 +103,21 @@ const help = [
       },
     ],
   },
+  {
+    command: 'ud',
+    descr: 'UrbanDictionary search',
+    params: [
+      {
+        param: 'query',
+        required: true,
+        descr: 'The search to run',
+      },
+    ],
+  },
 ];
 
-const recentResults = [];
+const recentResults = new Array(config.excludeRecentNumber);
+recentResults.fill(undefined);
 
 const twitter = new Twitter(config.twitter);
 const youtube = new YouTube();
@@ -207,6 +220,11 @@ ipc.subscribe('tw.request', (data) => {
   const request = JSON.parse(data);
   if (debug) clog.debug('Twitter request', request);
   twitterSearch(request);
+});
+
+ipc.subscribe('ud.request', (data) => {
+  const request = JSON.parse(data);
+  urbanDictSearch(request);
 });
 
 function googleSearch(request, params) {
@@ -431,4 +449,47 @@ function youtubeSearch(request) {
       return;
     }
   });
+}
+
+function urbanDictSearch(request) {
+  urbanDict
+    .all(request.args)
+    .then((response) => {
+      if (debug) clog.debug(response);
+      var outputString = '';
+      var selectedResult = response[0];
+      if (config.excludeRecent) {
+        var i = 0;
+        while (recentResults.includes(selectedResult.id) && i <= 9) {
+          i++;
+          if (i === response.length) {
+            outputString = ircColor.red('No more results');
+            const reply = {
+              target: request.channel,
+              text: outputString,
+            };
+            if (debug) clog.debug(`Sending reply to: ${request.replyTo}.outgoingMessage`, reply);
+            ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
+            return;
+          }
+          clog.debug('Cache hit, re-selecting', selectedResult.id, i, recentResults.length);
+          selectedResult = response[Math.floor(Math.random() * response.length)];
+        }
+        recentResults.unshift(selectedResult.id);
+        recentResults.length = config.excludeRecentNumber;
+        clog.debug('Recent results', recentResults);
+      }
+      clog.debug(selectedResult);
+      outputString = `Found ${request.args}: ${ircColor.blue(selectedResult.definition)}"`;
+      const reply = {
+        target: request.channel,
+        text: outputString,
+      };
+      if (debug) clog.debug(`Sending reply to: ${request.replyTo}.outgoingMessage`, reply);
+      ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
+      return;
+    })
+    .catch((err) => {
+      clog.error(err);
+    });
 }

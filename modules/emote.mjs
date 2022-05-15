@@ -41,6 +41,11 @@ const help = [
     params: [],
   },
   {
+    command: 'tripppledowny',
+    descr: 'three downys in a row',
+    params: [],
+  },
+  {
     command: 'rainbowdowny',
     descr: 'rainbow-ized downy face',
     params: [],
@@ -147,7 +152,7 @@ ipc.subscribe('dudeweed.request', (data) => {
 
 ipc.subscribe('downy.request', (data) => {
   const request = JSON.parse(data);
-  const string = ".'\x1f/\x1f)";
+  const string = ircColor.red(".'\x1f/\x1f)");
   const reply = {
     target: request.channel,
     text: string,
@@ -164,6 +169,19 @@ ipc.subscribe('doubledowny.request', (data) => {
     text: string,
   };
   if (debug) clog.debug(`Sending reply to: ${request.replyTo}.outgoingMessage`, reply);
+  ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
+  ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
+});
+
+ipc.subscribe('tripppledowny.request', (data) => {
+  const request = JSON.parse(data);
+  const string = ircColor.green(".'\x1f/\x1f)");
+  const reply = {
+    target: request.channel,
+    text: string,
+  };
+  if (debug) clog.debug(`Sending reply to: ${request.replyTo}.outgoingMessage`, reply);
+  ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
   ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
   ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply));
 });

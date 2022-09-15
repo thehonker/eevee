@@ -480,7 +480,7 @@ function urbanDictSearch(request) {
         clog.debug('Recent results', recentResults);
       }
       clog.debug(selectedResult);
-      outputString = `Found ${request.args}: ${ircColor.blue(selectedResult.definition)}`;
+      outputString = `Found ${request.args}: ${ircColor.blue(selectedResult.definition.split(/[\n|\r\n]/)[0])}`;
       const reply = {
         target: request.channel,
         text: outputString,

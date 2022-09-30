@@ -23,7 +23,7 @@ setPingListener(ipc, ident, 'init');
 
 /* -- the card shuffling and reading parts -- */
 function shuffled_deck(){let i,o=Array.from({length:78},(r,o)=>o+1);for(let r=78;r;r--){let a=Math.floor(Math.random()*r);[o[r-1],o[a]]=[o[a],o[r-1]]}for(i=Math.floor(6*Math.random()+23);i;i--)o[i-1]*=-1;for(i=78;i;i--){let r=Math.floor(Math.random()*i);[o[i-1],o[r]]=[o[r],o[i-1]]}return o}
-function i_to_c1(t){let n,e;return n=tarot_db.tarot_interpretations[Math.abs(t)],e=n.fortune_telling,punycode.ucs2.encode([n.unicode])+" "+n.name+": "+e[Math.floor(Math.random()*e.length)]}
+function i_to_c1(t){let n,e;return n=tarot_db.tarot_interpretations[Math.abs(t)-1],e=n.fortune_telling,punycode.ucs2.encode([n.unicode])+" "+n.name+": "+e[Math.floor(Math.random()*e.length)]}
 function i_to_c3(t){let n,e;return e=0<t?(n=tarot_db.tarot_interpretations[t-1],n.meanings.light):(n=tarot_db.tarot_interpretations[-1*t-1],n.meanings.dark),punycode.ucs2.encode([n.unicode])+" "+n.name+" "+e[Math.floor(Math.random()*e.length)]}
 
 /* -- the commands -- */

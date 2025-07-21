@@ -1,19 +1,17 @@
-# Logs
+# State files must not go into public repos
+etc/
+db/
 log/
-logs
 *.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
+run/
+tmp/
 
 # Dependency directories
 node_modules/
+npm-debug.log*
 
 # Yarn Integrity file
 .yarn-integrity
+yarn-debug.log*
+yarn-error.log*
 
-# Configuration files
-etc/
-
-# sqlite db files
-db/

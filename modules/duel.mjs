@@ -76,9 +76,10 @@ catch(err) {
 const updateScore=(a,b)=>{
   try{if(db){
     db.prepare(`INSERT OR REPLACE INTO '${tableName}' (nick, score, updated) VALUES (?, ?, ?)`).run(flatnick(a),b,unixtime());}
+    return true
   }catch(err){
     clog.error("Error in updateScore", err.message)
-    return undefined
+    return false
   }}
 /* i = getScore("goos") => {nick: "goos", score: 0.473, updated: 1752723556} */
 const getScore=a=>{
@@ -89,7 +90,7 @@ const getScore=a=>{
     clog.error("Error in getScore(${a})",err.message)
   }
   b||={score:0.5,updated:0}
-  if(b.score===undefined || b.score===null) b.score=0.5 /* goddamn edgecase */
+  if(b.score===undefined || b.score===null) b.score=0.5 /* damned edgecase */
   return {nick:a,score:b.score,updated:b.updated}
   }
 
@@ -136,27 +137,43 @@ help.push({ command: 'duel', descr: 'Pick a fight with someone',
    ] })
 
 /* .duelrank goos => "goos has rank indigo; their last duel was some time ago." */
+/* .duelrank goos mozai vriska => "goos has rank indigo. mozai has rank green. vriska has rank blue" */
 shuffle(ranks)
 ipc.subscribe('duelrank.request', (data) => {
   const request = JSON.parse(data)
-  const whomst = (request.args.split(' ')[0] || request.nick)
-  /* TODO: more than one name as parameter; all will use same ranking_scheme */
-  let reply = {target: request.channel, text: `${whomst} has no duel rank`}
-  const le_score = getScore(whomst)
-  if(le_score.updated > 0) {
-    const ranking_scheme = choosefresh(ranks)
+  let whomstes = []
+  if(request.args.trim())
+    whomstes = request.args.split(' ').splice(0,3)
+  else
+    whomstes = [request.nick]
+  const ranking_scheme = choosefresh(ranks)
+  const now = unixtime()
+  const reply = {target: request.channel, text: ''}
+  whomstes.forEach(whomst=>{
+    let le_score = getScore(whomst)
+    if(le_score.updated == 0){
+      if(whomstes.length == 1)
+        reply.text = `${whomst} has no duel rank`
+      /* else dont put names without ranks into the list */
+      return
+    }
     if (le_score["score"] > 0.9999999999999999) le_score["score"] = 0.9999999999999999
     else if (le_score["score"] < 0.0) le_score["score"] = 0.0
-    const rank = ranking_scheme[Math.floor((ranking_scheme.length)*le_score["score"])]
-    const now = unixtime()
-    let when = "; they haven't dueled in a long time"
-    if((now-le_score.updated)<(86400*1)) when = "" /* one day */
-    else if((now-le_score.updated)<(86400*10)) when = "; they fought recently" /* ten days */
-    else if((now-le_score.updated)<(86400*30)) when = "; they fought not long ago" /* 30 days */
-    else if((now-le_score.updated)<(86400*90)) when = "; their last duel was some time ago" /* 90 days */
-    reply.text = `${whomst}'s rank is ${rank}${when}`
-  }
-  ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply))
+    let rank = ranking_scheme[Math.floor((ranking_scheme.length)*le_score["score"])]
+    reply.text += `${whomst}'s rank is ${rank}`
+    if(whomstes.length == 1){
+      let when = "; they haven't dueled in a long time"
+      if((now-le_score.updated)<(86400*1)) when = "" /* one day */
+      else if((now-le_score.updated)<(86400*10)) when = "; they fought recently" /* ten days */
+      else if((now-le_score.updated)<(86400*30)) when = "; they fought not long ago" /* 30 days */
+      else if((now-le_score.updated)<(86400*90)) when = "; their last duel was some time ago" /* 90 days */
+      reply.text += `${when}`
+    }
+    reply.text += ". "
+  })
+  reply.text = reply.text.trim()
+  if(reply.text.length > 0)
+    ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify(reply))
 })
 help.push({ command: 'duelrank', descr: 'Get a vague idea of your awesomeness',
    params: [
@@ -175,5 +192,5 @@ ipc.subscribe('_help.updateRequest',()=>{
   ipc.publish('_help.update',JSON.stringify({from:ident,help:help}))
 })
 /* when I'm unloaded */
-process.on("SIGINT",()=>{handleSIGINT(ident,ipc)})
+process.on("SIGINT",()=>{if(db)db.close();handleSIGINT(ident,ipc)})
 

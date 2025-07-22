@@ -1,0 +1,60 @@
+{
+  /* 'die', 'yell' or 'continue' */
+  errorAction: 'yell', 
+  dbFilename: 'duel.sqlite', 
+  dbParameters: { fileMustExist: false, inMemory: false, readonly: false, timeout: 5000, },
+
+  /* duellists have a better chance of winning on their "lucky day", computed
+     from their name.  This string gets appended so it's slightly harder to predict */
+  luckydaysalt: "fish",
+
+  /* milliseconds to wait between .duel requests */
+  throttle: 1000,
+
+  /* these use madlibs with "winner" and "loser" prescribed.
+     Hope it's obvious how to make new ones from these examples.
+     remember the resulting string MUST be less than 253 characters,
+     that includes the cant-be-known lengths of {winner} and {loser} */
+  methods: [
+    "After an entire Saturday afternoon of Warhammer 40K, {winner}'s {space marines|necrons|tyranids|orks} finally defeats {loser}'s {chaos marines|tau army|adepta sororistas|imperial guards}.",
+    "At the end of a tense game of Jenga, {winner} {smirks|sneezes|pays little attention|winces in sympathy} while {loser} knocks the tower over.",
+    "Hours later, {winner} moves their {queen|bishop|rook|knight} and calls \"checkmate\", and {loser} concedes.",
+    "The crowd watches as they play {rock-paper-scissors|janken|roshambo}. {winner} used paper, and {loser} used rock.",
+    "The crowd watches as they play {rock-paper-scissors|janken|roshambo}. {winner} used rock, and {loser} used scissors.",
+    "The crowd watches as they play {rock-paper-scissors|janken|roshambo}. {winner} used scissors, and {loser} used paper.",
+    "The crowd watches as they play roshambo. {loser} used {rock|paper|scissors}, and {winner} kicked them in the crotch real hard; Eric Cartman declares {winner} the winner.",
+    "The two agree to a tontine; after an unexpectedly good {Friday|Saturday}-night date, {loser} admits they experienced \"the little death\" and {winner} wins on a technicality.",
+    "The two exchange a smouldering look, then each whips it out and lays it on the table with a {thunk|thwap|thud}.  {loser} is forced to admit {winner} has the bigger {codpiece|breast implants|lobster|student debt|coredump|pokemon collection|striped stockings|github repository}.",
+    "The two get into an artfight! {winner} {makes an thirty-minute SFM video|paints with oil on canvas|sculpts in free-trade marble|writes an modern rock-opera}, while {loser} {makes a 60-second youtube poop|paints with acrylic on newsprint|makes a meta-ironic Jeff Koons sculpture|writes a commercial jingle|draws a furry OC with no nudity}.  {winner} wins.",
+    "The two of you square off with {pistols|rapiers|atom-bombs} at dawn.  {loser} {slept in|went to the wrong dueling grounds|left their pants at home|hits their own foot}. {winner} wins!",
+    "They break out some cards. {loser} shows {two pair|three of-a-kind|a straight} while {winner} puts down {a flush|full house|four of-a-kind}; {winner} wins.",
+    "They break out some dice. {loser} rolls {6|5|4|3|2} while {winner} rolls {12|11|10|9}; {winner} wins.",
+    "They get on the Dance Dance Revolution pads.  {winner} misses {four|three|only two|no} steps, while {loser} {misses five steps|misses half of the steps|didnt know all the songs are j-pop and just stands there in shock}.",
+    "This match will be a single frame of billiards. {loser} {sinks the cue ball|scratches the felt|only knows how to play snooker}, while {winner} {sank the eight-ball|ate two of the balls when nobody was looking|does a three-bank trick shot}. {winner} wins!",
+    "The two agree on a hotdog-eating contest.  {loser} is impressed by {winner} {stuffing meat into their mouth like a pro|vigorously fitting two in their mouth every time|tolerance at sliding long objects in their throat without gagging}.  {winner} wins!",
+    "The two agree on a pie-eating contest. {loser} is impressed by {winner} {eating someone else's pie like they just got outta prison|diving face-first between the rails to get at that pie|using their tongue to catch every wet bit of filling}.  {winner} wins!",
+    "The only way to settle this is to hack the Gibson.  {loser} gets stopped by {Crystal Wall|Data Wall 2.0|Mazer|π in the 'Face|Tachikoma|TKO 2.0} ICE, while {winner} slips past with their {Bakdoor™|iSpy|KusinagiMjr|RunRabbitRun|Shredder Uplink|Skivviss|Wintermute} program and gets the paydata.",
+  ],
+
+  /* ranks, because karate didn't have coloured belts before they taught Americans
+     the real "rank"s are just floats in the range [0.0,1.0} */
+  ranks: [
+    /* horse-show, American */
+    ["grey horse-ribbon", "brown horse-ribbon", "purple horse-ribbon", "green horse-ribbon", "pink horse-ribbon", "white horse-ribbon", "yellow horse-ribbon", "red horse-ribbon", "blue horse-ribbon"], 
+    /* Olympics and Special Olympics */
+    ["participation trophy", "participation trophy", "also-ran trophy", "also-ran trophy", "bronze medal", "silver medal", "gold medal"],  
+    /* security clearances in Paranoia */
+    ["infra-red(black) clearance", "red clearance", "orange clearance", "yellow clearance", "green clearance", "blue clearance", "indigo clearance", "violet clearance", "ultra-violet(white) clearance" ], 
+    /* chess pieces by point value */
+    ["a pawn piece", "a knight piece", "a bishop piece", "a rook piece", "a queen piece"],  
+    /* miltary(army) ranks */
+    ["infantry trooper", "lance corporal", "corporal", "sergeant", "second lieutenant", "first lieutenant", "captain", "major", "lt.colonel", "colonel", "briadier general", "major general", "field marshal"], 
+    /* wanted to use Varna caste system but I might offend a Hindu */
+    /* European caste system: clubs/wands/villeins, diamonds/coins/guildsmen, hearts/cups/church, spades/swords/royalty */
+    ["The Fool(0)", "suit of Wands", "suit of Coins", "suit of Cups", "suit of Swords", "Za Warudo(XXI)"],
+    /* D&D alignments, I guess? */
+    ["Chaotic Evil", "Lawful Evil", "Neutral Evil", "Chaotic Neutral", "True Neutral", "Lawful Neutral", "Neutral Good", "Chaotic Good", "Lawful Good"],
+
+  ],
+
+}

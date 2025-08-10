@@ -3,21 +3,24 @@
 /* Contributed by mozai@wetfish */
 /* how was this not already in the mix */
 
-/* Use:  .roll 100 => 1d100 => "eevee rolled a 42"
-         .roll 3d6 => "eevee rolled 4,3,5 (12)"
-         .roll 2d6+1 => "eevee rolled 2,3 (6)
-         2d20k => 2 [1..20] keep highest 1 (D&D "roll with advantage)
-         2d20k-1 => 2 [1..20] drop highest 1 (D&D "roll with disadvantage)
-         4d6k3 => 4 [1..6] keep highest 3
-         2d6! or 2d6x => exploding sixes, roll more dice
-         4dF => Fudge dice with faces "+","o","-" [-1,0,+1]
-         d66 => sometimes "2d6 but as a two-digit base-6 number"
+/* Use:
+   .roll 100 => 1d100 => "eevee rolled a 42"
+   3d6 => "eevee rolled 4,3,5 (12)"
+   2d6+1 => "eevee rolled 2,3 (6)
+   2d20k => 2 [1..20] keep highest 1 (D&D "roll with advantage)
+   4d6k3 => 4 [1..6] keep highest 3
+   2d20k-1 => 2 [1..20] keep lowest 1 (D&D "roll with disadvantage)
+   2d6! or 2d6x => exploding sixes, roll more dice
+   4dF => Fudge dice with faces "+","o","-" [-1,0,+1]
+   9ore10 => (2x6,2x4,2x2,1x10,1x7,1x1)
 ref. https://en.m.wikipedia.org/wiki/Dice_notation#Variationas_and_expansions
 */
 
-/* TODO: 5d6dh1dl1  five dice, drop highest one and lowest one */
 /* TODO: colours */
-/* TODO: .roll ORE / .roll 9ore10 */
+/* IDEA: d6-d6, alternative to Fudge dice, used by Feng Shui RPG */
+/* IDEA: roll 5d10 but cound how many are >=7 (Vampire, Exalted)
+/* IDEA: 5d6dh1dl1  five dice, drop highest one and lowest one */
+/* IDEA: d66 as two-digit base-6 number (q.f. d100 as d10*10+d10 */
 
 /* -- dependencies -- */
 import { default as clog } from 'ee-log'
@@ -27,7 +30,7 @@ import { handleSIGINT, ipc, lockPidFile, setPingListener } from '../lib/common.m
 /* -- config start -- */
 
 /* wait 2 seconds between die-rolls */
-const throttle = 2 
+const throttle = 2
 /* even if you play Shadowrun you don't need this many dice */
 const maxnum = 64
 /* d1000 is the biggest die I ever saw */
@@ -38,19 +41,17 @@ const maxsize = 65535
 const ident = 'roll'
 lockPidFile(ident)
 setPingListener(ipc, ident, 'init')
-const unixtime=_=>Math.round((Date.now()/1000))
-var lasttime=0
+var lasttime = 0
 const sum = x => x.reduce((a,b)=>a+b)
 
 /* Advantage: keep=n-1 Disadvantage: keep=-(n-1) */
 function rollPolyhedra(n=2,s=6,b=0,x=0,k=0) {
-  /* roll n dice of s sides, 
-     add b to the final sum,
-     if x>0  dice showing s+1-x, roll another die
-     if x<0  dice showing abs(-x) or less, roll another die
-     if k>0, keep the k highest dice,
-     if k<0, keep the k lowest dice
-  */ 
+  /* n how many dice
+     s how many sides on each die
+     b bonus to add to the sum
+     x higest faces explode, lowest faces if <0
+     k keep k highest dice, lowest dice if <0
+  */
   /* sane-ify all inputs */
   n = Math.round(Math.min(n,maxnum))
   s = Math.round(Math.min(s,maxsize))
@@ -58,14 +59,16 @@ function rollPolyhedra(n=2,s=6,b=0,x=0,k=0) {
   if(x<0) x = -1 * Math.round(Math.min(s,Math.abs(x)))
   else if(x>0) x = Math.min(s,x)
   k = Math.round(Math.min(n,k))
+  /* build the reply with what I'm rolling */
   let text = `rolling ${n}d${s}`
   if(x!=0) text += '!'
   if(k>0) text += `k${k}`
   else if(k<0) text += `d${-1*k}`
   if(b>0) text += `+${b}`
   else if(b<0) text += `${b}`
-  let rolled = [...Array(n)].map(_=>Math.ceil(Math.random()*s))
-  let keep = []
+  /* roll dem bones */
+  const rolled = [...Array(n)].map(_=>Math.ceil(Math.random()*s))
+  const keep = []
   while(rolled.length > 0) {
     if(x>0 && (rolled[0] > s - x))
         rolled.push(Math.ceil(Math.random()*s))
@@ -77,20 +80,15 @@ function rollPolyhedra(n=2,s=6,b=0,x=0,k=0) {
   if(k!=0){
     keep.sort()
     if(k>0) keep.reverse()
-    keep = keep.splice(0,Math.abs(k))
+    while(keep.length > Math.abs(k)) keep.pop()
   }
-  text += ` (${keep.toString()}) ${sum(keep)+b}`
-  return text
+  return `${text} (${keep.toString()}) ${sum(keep)+b}`
 }
 
 function rollFudge(n=4) {
-  /* 4dF -> rolled (-,o,+,+) 1" */
   n = Math.round(Math.min(n,maxnum))
-  let text = `rolling ${n}dF`
-  const faces = ['-','o','+']
-  let rolled = [...Array(n)].map(_=>Math.floor(Math.random()*3))
-  text += ` (${rolled.map(_=>faces[_])}) ${sum(rolled)-n}`
-  return text
+  const faces = ['-','o','+'], rolled = [...Array(n)].map(_=>Math.floor(Math.random()*3))
+  return `rolling ${n}dF (${rolled.map(_=>faces[_])}) ${sum(rolled)-n}`
 }
 
 function rollORE(n=9,s=10) {
@@ -98,26 +96,22 @@ function rollORE(n=9,s=10) {
   s = Math.round(Math.min(s,maxsize))
   /* quirk of ORE: you mustn't roll more dice than faces */
   n = Math.round(Math.min(n,s))
-  let text = `rolling ${n}ore${s}`
-  let p1 = {}, p2 = {};
+  const p1 = {};
   [...Array(n)].map(_=>{let x=Math.ceil(Math.random()*s);p1[x]=(p1[x]||0)+1;})
-  p2 = Object.entries(p1).map(x=>[x[1],x[0]])
+  const p2 = Object.entries(p1).map(x=>[x[1],x[0]])
   p2.sort((a,b)=>(b[0] - a[0] || b[1] - a[1]))
-  p1 = p2.map(x=>`${x[0]}x${x[1]}`)
-  text += ` (${p1.join(",")})`
-  return text
+  return `rolling ${n}ore${s} (${p2.map(x=>`${x[0]}x${x[1]}`).join(",")})`
 }
 
 
 /* -- the commands from users -- */
 var help = []
-var lasttime = 0
 
 ipc.subscribe('roll.request', (data) => {
   const request = JSON.parse(data)
   let text = ""
-  if((Date.now() - lasttime) < throttle){
-    text = "Wait." 
+  if((Date.now()/1000 - lasttime/1000) < throttle){
+    text = "Wait."
     /* return ipc.publish(`${request.replyTo}.outgoingMessage`, JSON.stringify({target: request.nick, text: text})) */
     return
   }
@@ -142,7 +136,7 @@ ipc.subscribe('roll.request', (data) => {
   /* "2d6+2" => "rolling 2d6+2 (4,3) 9" */
   /* "4d6k1" => "rolling 4d6k1 (6,5,5) 16" */
   /* "3d6!" => "rolling 3d6! (3,2,6,2) 13" */
-  found = args[0].match(/^(\d*)d(\d*)(!)?(k-?\d+)?([+-]\d+)?$/)
+  found = args[0].match(/^(\d*)d(\d*)([!x])?(k-?\d+)?([+-]\d+)?$/)
   if(found) {
     reply.text = rollPolyhedra(Number(found[1] || 1), Number(found[2] || 6), Number(found[5] || 0), (found[3] && 1 || 0), (found[4] && Number(found[4].substr(1)) || 0))
     if(reply.text) {

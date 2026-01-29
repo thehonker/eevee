@@ -30,9 +30,8 @@ var config = getConfig(moduleFullIdent);
 
 // Later this will check a pass/block list
 // For now it just allows everything .'/)
-const isAllowedCommand = (command) => {
-  // Make eslint shut up about no-unused-vars
-  if (command === command) return true;
+const isAllowedCommand = (msg) => {
+  return true;
 };
 
 if (debug) clog.debug('process.argv:', process.argv);
@@ -90,6 +89,11 @@ ipc.subscribe(`irc-parser.${moduleInstance}.incomingMessage`, (data) => {
   };
   if (debug) clog.debug('Parsed message:', msg);
 
+  if (config.ignoredUsers.includes(msg.nick)) {
+    if (debug) clog.debug(`Ignored msg from user ${msg.nick}`, msg);
+    return;
+  }
+
   if (msg.text === '.bots') {
     const reply = {
       target: msg.channel,
@@ -113,7 +117,7 @@ ipc.subscribe(`irc-parser.${moduleInstance}.incomingMessage`, (data) => {
       .join(' ');
     msg.prefix = prefix;
 
-    if (isAllowedCommand(msg.command)) {
+    if (isAllowedCommand(msg)) {
       if (debug) clog.debug('Received command:', msg.command + ' ' + msg.args);
       ipc.publish(`${msg.command}.request`, JSON.stringify(msg));
       ipc.publish(`_broadcast.incomingMessage.${msg.platform}.${msg.replyTo}`, JSON.stringify(msg));
@@ -129,7 +133,7 @@ ipc.subscribe(`irc-parser.${moduleInstance}.incomingMessage`, (data) => {
       .join(' ');
     msg.prefix = prefix;
 
-    if (isAllowedCommand(msg.command)) {
+    if (isAllowedCommand(msg)) {
       if (debug) clog.debug('Received command:', msg.command + ' ' + msg.args);
       ipc.publish(`${msg.command}.request`, JSON.stringify(msg));
       ipc.publish(`_broadcast.incomingMessage.${msg.platform}.${msg.replyTo}`, JSON.stringify(msg));

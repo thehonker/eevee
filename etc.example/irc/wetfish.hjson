@@ -2,6 +2,9 @@
   errorAction: 'die',
   owner: 'Weazzy@lu.dicro.us',
   prefixRegex: '^<',
+  ignoredUsers: [
+    'fishy',
+  ]
   client: {
     nick: 'eevee',
     username: 'iAmABot',
@@ -48,7 +51,7 @@
       raw: 'raw_irc_string',
     }
     */
-  ],
+  ]
 }
 
 /*

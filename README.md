@@ -1,4 +1,9 @@
 # eevee
+
+## HEY, this is really ol
+
+### Check out <https://eevee.bot> for my replacement!
+
 yes another irc bot yes i'm rewriting it but keeping the same name
 hush hush
 
